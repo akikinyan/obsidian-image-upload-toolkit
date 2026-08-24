@@ -109,3 +109,34 @@
 .upload-progress-modal .image-name {
     font-size: var(--font-ui-small);
 }
+
+/* Which of WebP conversion / upload history are active for this run */
+.upload-progress-modal .progress-modes {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.upload-progress-modal .progress-size-summary {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.upload-progress-modal .summary-reused {
+    color: var(--text-muted);
+}
+
+.upload-progress-modal .image-status-icon.reused {
+    color: var(--text-muted);
+}
+
+/* Per-image note: the size change, or that the URL came from the history.
+   Pushed to the right so the file names stay scannable in a column. */
+.upload-progress-modal .image-detail {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    margin-left: auto;
+    padding-left: 12px;
+    white-space: nowrap;
+}

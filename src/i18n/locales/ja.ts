@@ -377,6 +377,14 @@ const ja: Messages = {
         images: "画像",
         succeeded: (count: number) => `成功 ${count} 件`,
         failedCount: (count: number) => `失敗 ${count} 件`,
+        modeWebp: (quality: number) => `WebP 変換 有効（品質 ${quality}）`,
+        modeWebpKeepOriginal: (quality: number) => `WebP 変換 有効（品質 ${quality}、オリジナルも保存）`,
+        modeWebpSkipped: "WebP 変換 このノートは対象外",
+        modeHistory: "アップロード履歴 有効",
+        reused: "履歴から再利用",
+        reusedCount: (count: number) => `履歴から ${count} 件`,
+        sizeConverted: (from: string, to: string, delta: string) => `${from} → ${to}（${delta}）`,
+        totalSize: (from: string, to: string, delta: string) => `変換分の合計 ${from} → ${to}（${delta}）`,
     },
 
     notice: {

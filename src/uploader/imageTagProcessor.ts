@@ -2,7 +2,7 @@ import {App, Editor, FileSystemAdapter, MarkdownView, normalizePath, Notice} fro
 import path from "path";
 import ImageUploader from "./imageUploader";
 import {PublishSettings} from "../publish";
-import UploadProgressModal from "../ui/uploadProgressModal";
+import UploadProgressModal, {type UploadDetail} from "../ui/uploadProgressModal";
 import {WebImageDownloader} from "./webImageDownloader";
 import MermaidProcessor from "./mermaidProcessor";
 import ImageStore from "../imageStore";
@@ -133,7 +133,13 @@ export default class ImageTagProcessor {
         
         // Initialize progress display
         if (this.useModal && images.length > 0) {
-            this.progressModal = new UploadProgressModal(this.app);
+            const webpSetting = this.settings.webpSetting;
+            this.progressModal = new UploadProgressModal(this.app, {
+                webp: allowWebp ? "on" : (webpSetting?.enabled ? "skipped" : "off"),
+                webpQuality: webpSetting?.quality ?? 0,
+                keepOriginal: webpSetting?.keepOriginal ?? false,
+                historyEnabled: this.cache !== null,
+            });
             this.progressModal.open();
             this.progressModal.initialize(images);
         }
@@ -274,37 +280,50 @@ export default class ImageTagProcessor {
 
         const fullPath = basePath + '/' + image.path;
         const webpSetting = this.settings.webpSetting;
+        const willConvert = allowWebp && matchesExtension(image.name, webpSetting.extensions);
+
+        // Keyed on the bytes on disk rather than the bytes uploaded, so a hit
+        // skips the conversion as well as the upload. The quality is folded
+        // into the variant, so changing it re-converts rather than returning a
+        // URL encoded at the old setting.
+        const sourceHash = this.cache ? await sha256(await original.arrayBuffer()) : "";
+        const displayVariant = willConvert ? `display:webp:q${webpSetting.quality}` : "display:raw";
+        const detail: UploadDetail = {originalSize: original.size, uploadedSize: original.size};
 
         try {
-            let display = original;
-            let converted = false;
-            if (allowWebp && matchesExtension(image.name, webpSetting.extensions)) {
-                const webp = await convertToWebp(original, webpSetting.quality);
-                if (webp && webp.size < original.size) {
-                    display = webp;
-                    converted = true;
-                } else if (webp) {
-                    console.debug(
-                        `Image upload toolkit: ${image.name} grew from ${original.size} to ${webp.size} bytes ` +
-                        `as WebP, uploading the original instead`,
-                    );
+            const displayKey = cacheKey(this.destination, displayVariant, sourceHash);
+            const cached = this.cache?.get(displayKey);
+            if (cached) {
+                console.debug(`Image upload toolkit: reusing ${cached} for ${image.name}`);
+                image.url = cached;
+                detail.reused = true;
+            } else {
+                let display = original;
+                if (willConvert) {
+                    const webp = await convertToWebp(original, webpSetting.quality);
+                    if (webp && webp.size < original.size) {
+                        display = webp;
+                        detail.converted = true;
+                        detail.uploadedSize = webp.size;
+                    } else if (webp) {
+                        console.debug(
+                            `Image upload toolkit: ${image.name} grew from ${original.size} to ${webp.size} bytes ` +
+                            `as WebP, uploading the original instead`,
+                        );
+                    }
                 }
+                image.url = await this.imageUploader.upload(display, fullPath);
+                this.cache?.set(displayKey, image.url, Date.now());
             }
 
-            image.url = await this.uploadWithCache(display, fullPath, "display", this.imageUploader);
-
-            if (converted && webpSetting.keepOriginal) {
-                try {
-                    await this.uploadWithCache(original, fullPath, "source", this.originalUploader());
-                } catch (e) {
-                    // The archival copy is a convenience. Failing the publish
-                    // over it would lose the WebP upload that already succeeded.
-                    console.error(`Image upload toolkit: failed to archive the original of ${image.path}`, e);
-                    new Notice(i18n().notice.originalUploadFailed(image.path, errorMessage(e)), 8000);
-                }
+            // On a cache hit we cannot tell whether conversion had applied, so
+            // the archive is ensured whenever it would have. The source key
+            // makes that a no-op after the first time.
+            if (webpSetting.keepOriginal && (detail.converted || (detail.reused && willConvert))) {
+                await this.archiveOriginal(original, fullPath, sourceHash, image.path);
             }
 
-            this.progressModal?.updateProgress(image.name, true);
+            this.progressModal?.updateProgress(image.name, true, detail);
             return image;
         } catch (e) {
             this.progressModal?.updateProgress(image.name, false);
@@ -315,29 +334,25 @@ export default class ImageTagProcessor {
     }
 
     /**
-     * Upload `file`, or return the URL a previous run produced for the same
-     * bytes at the same destination. `variant` separates the displayed image
-     * from the archived original, which can hold identical bytes but land at
-     * different paths.
+     * Upload the untouched original as an archive copy. Failure is reported but
+     * never propagated: the WebP is already published, and undoing that to
+     * signal a missing backup would be the wrong trade.
      */
-    private async uploadWithCache(
-        file: File,
+    private async archiveOriginal(
+        original: File,
         fullPath: string,
-        variant: "display" | "source",
-        uploader: ImageUploader,
-    ): Promise<string> {
-        if (!this.cache) {
-            return uploader.upload(file, fullPath);
+        sourceHash: string,
+        notePath: string,
+    ): Promise<void> {
+        const key = cacheKey(this.destination, "source", sourceHash);
+        if (this.cache?.get(key)) return;
+        try {
+            const url = await this.originalUploader().upload(original, fullPath);
+            this.cache?.set(key, url, Date.now());
+        } catch (e) {
+            console.error(`Image upload toolkit: failed to archive the original of ${notePath}`, e);
+            new Notice(i18n().notice.originalUploadFailed(notePath, errorMessage(e)), 8000);
         }
-        const key = cacheKey(this.destination, variant, await sha256(await file.arrayBuffer()));
-        const cached = this.cache.get(key);
-        if (cached) {
-            console.debug(`Image upload toolkit: reusing ${cached} for ${file.name}`);
-            return cached;
-        }
-        const url = await uploader.upload(file, fullPath);
-        this.cache.set(key, url, Date.now());
-        return url;
     }
 
     /**

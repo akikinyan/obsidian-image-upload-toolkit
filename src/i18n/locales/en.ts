@@ -375,6 +375,15 @@ const en = {
         images: "Images",
         succeeded: (count: number) => `${count} succeeded`,
         failedCount: (count: number) => `${count} failed`,
+        modeWebp: (quality: number) => `WebP conversion on (quality ${quality})`,
+        modeWebpKeepOriginal: (quality: number) =>
+            `WebP conversion on (quality ${quality}, originals kept)`,
+        modeWebpSkipped: "WebP conversion skipped for this note",
+        modeHistory: "Upload history on",
+        reused: "reused from history",
+        reusedCount: (count: number) => `${count} from history`,
+        sizeConverted: (from: string, to: string, delta: string) => `${from} → ${to} (${delta})`,
+        totalSize: (from: string, to: string, delta: string) => `Converted: ${from} → ${to} (${delta})`,
     },
 
     notice: {

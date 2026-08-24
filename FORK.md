@@ -165,6 +165,27 @@ machine re-uploads everything once.
 Settings → Upload history has the on/off switch, the entry count, and a Clear
 button for when a note links to a URL that no longer works.
 
+Keying on the source bytes rather than the uploaded ones is deliberate: it lets a
+hit skip the conversion as well as the upload. The encoder quality is folded into
+the variant string, so lowering it re-converts rather than returning a URL
+encoded at the old setting.
+
+## What the progress modal reports
+
+The modal states what is in effect for the run — conversion with its quality,
+whether originals are kept, whether the history is on — and then, per image,
+either the size change (`1.2 MB → 340 KB (-72%)`), the plain size when nothing
+was converted, or `reused from history`. A total for the converted images
+follows the success/failure summary.
+
+Two details are deliberate:
+
+- **A note that opted out reads as "skipped for this note", not as the feature
+  being off.** Those two states are otherwise indistinguishable, which sends the
+  reader to the settings tab to work out why nothing was converted.
+- **A reused image shows no size change.** Nothing was converted on that run, so
+  a percentage would be a number the plugin did not measure.
+
 ## Fixed: spaces in object keys were not percent-encoded
 
 Obsidian names pasted screenshots `Pasted image 20260824080301.png`, so object
