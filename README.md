@@ -8,6 +8,8 @@
 > Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat), not from the community plugin store.
 > See [FORK.md](FORK.md) for what differs and why.
 
+> 日本語版のドキュメントは [README_JA.md](README_JA.md) にあります。
+
 ## 📋 Table of Contents
 - [🚀 Quick Start](#-quick-start)
 - [✨ Features](#-features)
@@ -44,6 +46,8 @@
 - ✅ **Flexible Paths** - Support for relative paths and dynamic path variables
 - ✅ **Web Image Upload** - Download and re-upload web images to your storage (optional)
 - ✅ **Mermaid Conversion** - Automatically convert mermaid diagrams to PNG images during publish (optional)
+- ✅ **Proxy Support** - Route the S3-compatible uploaders through an HTTP proxy (fork addition, see [FORK.md](FORK.md#proxy-support))
+- ✅ **Japanese UI** - Follows Obsidian's own language setting (fork addition)
 
 ### Supported Storage Services (10 providers)
 | Service | Rating | Best For |
@@ -296,6 +300,14 @@ The plugin will contact one of the following hostnames depending on which storag
 2. Use only alphanumeric characters, hyphens, and underscores
 3. Check filename encoding in your file system
 
+#### Uploads Time Out Behind a Corporate Proxy
+**Cause**: AWS S3, Cloudflare R2 and Backblaze B2 use the AWS SDK, which issues requests through Node's `https` module. Node honours neither the `*_PROXY` environment variables nor the OS proxy settings, so those three cannot connect while the other seven backends keep working.
+**Solution**:
+1. Open Settings → Network → Proxy
+2. Leave it on "Auto-detect from environment" if `HTTPS_PROXY` or `HTTP_PROXY` is set, otherwise choose "Specify manually" and enter the URL
+3. The status line under the dropdown shows the proxy actually in effect
+4. See [FORK.md](FORK.md#proxy-support) for the details, including `NO_PROXY` matching rules
+
 #### Web Image Download Failures
 **Cause**: Network issues, CORS restrictions, or authentication requirements
 **Solution**:
@@ -357,7 +369,23 @@ npm run dev
 
 ## 📝 Changelog
 
-### v1.4.0 (Latest)
+### v1.7.0 (Latest — this fork)
+- ✨ HTTP proxy support for AWS S3, Cloudflare R2 and Backblaze B2, with auto-detection from the environment, a manual override, and an off switch
+- ✨ Japanese UI for the settings tab, progress modal, notices and command name; follows Obsidian's language setting and can be pinned in the settings tab
+- 🐛 Fixed object paths not being percent-encoded by the uploaders that build a full URL (S3, Aliyun OSS, Tencent COS), which broke image links for filenames containing spaces
+- 🔧 Fixed `display()` in `publishSettingTab.ts` being declared `: unknown` while returning nothing, which `tsc` rejects
+
+### Upstream v1.5.0 – v1.6.7
+Not previously recorded in this changelog. Highlights:
+- ✨ Added Gyazo support
+- 🔧 Migrated the AWS SDK from v2 to the modular v3
+- 🔧 Replaced the Aliyun OSS, Tencent COS and Qiniu Kodo SDKs with `requestUrl` plus inline request signing
+- 🐛 Surfaced upload failures, and trimmed whitespace from AWS-family credentials
+- 🐛 Serialized GitHub uploads
+- 🐛 Encoded object paths when a custom domain is configured
+- ✅ Added a vitest test suite
+
+### v1.4.0
 - 🔖 Version bump release — same features as v1.3.0 with corrected release tagging
 
 ### v1.3.0
