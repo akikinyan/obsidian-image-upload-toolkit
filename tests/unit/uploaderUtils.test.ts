@@ -116,6 +116,56 @@ describe("UploaderUtils.customizeDomainName", () => {
 
     expect(result).toBe("https://cdn.example.com//path/file.png");
   });
+
+  // Obsidian names pasted screenshots "Pasted image <timestamp>.png", so a raw
+  // space in the URL is the common case, not an edge case.
+  it("encodes spaces in an absolute URL when a custom domain is set", () => {
+    const result = UploaderUtils.customizeDomainName(
+      "https://bucket.s3.ap-northeast-1.amazonaws.com/2026/08/24/Pasted image 20260824080301.png",
+      "cdn.example.com",
+    );
+
+    expect(result).toBe(
+      "https://cdn.example.com/2026/08/24/Pasted%20image%2020260824080301.png",
+    );
+  });
+
+  it("encodes spaces in an absolute URL even without a custom domain", () => {
+    const result = UploaderUtils.customizeDomainName(
+      "https://bucket.s3.ap-northeast-1.amazonaws.com/2026/08/24/Pasted image.png",
+      "",
+    );
+
+    expect(result).toBe(
+      "https://bucket.s3.ap-northeast-1.amazonaws.com/2026/08/24/Pasted%20image.png",
+    );
+  });
+
+  it("does not double encode an already encoded absolute URL", () => {
+    const result = UploaderUtils.customizeDomainName(
+      "https://bucket.cos.ap-tokyo.myqcloud.com/2026/Pasted%20image.png",
+      "",
+    );
+
+    expect(result).toBe("https://bucket.cos.ap-tokyo.myqcloud.com/2026/Pasted%20image.png");
+  });
+
+  it("encodes a bare key even without a custom domain", () => {
+    expect(UploaderUtils.customizeDomainName("2026/Pasted image.png", ""))
+      .toBe("2026/Pasted%20image.png");
+  });
+
+  it("leaves a literal percent sign usable", () => {
+    // decodeURIComponent throws on "50%", so the encoder must fall back to
+    // encoding the raw segment rather than dropping it.
+    expect(UploaderUtils.customizeDomainName("https://host/50%.png", ""))
+      .toBe("https://host/50%25.png");
+  });
+
+  it("keeps a URL without a path unchanged apart from the host", () => {
+    expect(UploaderUtils.customizeDomainName("https://old.example.com", "cdn.example.com"))
+      .toBe("https://cdn.example.com");
+  });
 });
 
 describe("UploaderUtils.trimCredential", () => {

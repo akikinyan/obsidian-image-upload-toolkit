@@ -3,6 +3,11 @@ import type {Messages} from "./en";
 /**
  * 日本語メッセージ。`Messages` で型を縛っているため、キーの欠落・綴り間違いは
  * コンパイルエラーになる。
+ *
+ * 説明文は英語版の直訳ではなく、「この項目を変えると何がどうなるか」を書く方針。
+ * 設定画面を初めて見た人が、項目名だけでは判断できずに手が止まるのを避けるため。
+ * 値の例と、オン／オフそれぞれの結果を具体的に示す。
+ * なお Obsidian の説明欄はプレーンテキストなので、Markdown 記法は使わない。
  */
 const ja: Messages = {
     command: {
@@ -11,16 +16,16 @@ const ja: Messages = {
 
     general: {
         altText: {
-            name: "画像名を代替テキストに使う",
-            desc: "画像のファイル名を alt テキストとして使います。'-' と '_' は空白に置き換えられます。",
+            name: "画像名を代替テキストにする",
+            desc: "オン: リンクの角括弧の中に画像のファイル名が入ります（「-」と「_」は空白に変換）。オフ: 角括弧の中は空になります。表示は変わらず、画像が読み込めなかったときに出る文字が変わります。",
         },
         updateOriginalDoc: {
             name: "元のノートを書き換える",
-            desc: "ノート内の内部リンクをアップロード先のリンクに置き換えるかどうか。",
+            desc: "オン: 元のノート内の画像リンクを、アップロード後の URL に置き換えます。オフ: 元のノートには手を触れず、置き換え後の本文をクリップボードにコピーするだけです。",
         },
         ignoreProperties: {
-            name: "ノートのプロパティを除外する",
-            desc: "クリップボードにコピーする際にプロパティ（フロントマター）を除外します。元のノートには影響しません。",
+            name: "プロパティを除いてコピーする",
+            desc: "オン: クリップボードにコピーする本文から、ノート先頭のプロパティ（フロントマター）を取り除きます。オフ: プロパティも含めてコピーします。どちらでも元のノートからプロパティは消えません。",
         },
     },
 
@@ -28,11 +33,11 @@ const ja: Messages = {
         heading: "アップロード",
         progressModal: {
             name: "進行状況をダイアログで表示",
-            desc: "アップロード中の詳細をダイアログで表示します（完了後 3 秒で自動的に閉じます）。無効にするとステータスバーに簡易表示します。",
+            desc: "オン: 画像ごとの成否が分かるダイアログを出します（全部成功すると 3 秒後に自動で閉じます）。オフ: 画面右下のステータスバーに 1 行だけ表示します。",
         },
         webImages: {
-            name: "Web 上の画像もアップロードする",
-            desc: "有効にすると、http/https の URL で参照している画像をダウンロードし、設定したストレージへ再アップロードします。すでに自分のストレージ上にある画像はスキップされます。",
+            name: "外部サイトの画像も取り込む",
+            desc: "オン: ノート内で http / https の URL を参照している画像もダウンロードし、自分のストレージへアップロードし直してリンクを差し替えます。参照先が消えても画像が残ります。オフ: 外部の URL はそのまま残します。すでに自分のストレージ上にある画像は、どちらでも対象外です。",
         },
     },
 
@@ -40,15 +45,15 @@ const ja: Messages = {
         heading: "Mermaid",
         convert: {
             name: "Mermaid 図を画像に変換する",
-            desc: "Mermaid のコードブロックを PNG としてレンダリングし、公開時にアップロードします。",
+            desc: "オン: 公開時に mermaid のコードブロックを PNG に変換してアップロードし、画像リンクに置き換えます。Mermaid に対応していない場所へ貼るときに使います。オフ: コードブロックのまま残します。",
         },
         scale: {
             name: "Mermaid 画像の倍率",
-            desc: "書き出す画像の拡大率（1〜4 倍）。Retina ディスプレイでは 2 倍を推奨します。",
+            desc: "書き出す PNG の細かさ。2 なら図の表示サイズの 2 倍の画素数で書き出します。数値を上げると鮮明になり、ファイルサイズも増えます。高解像度ディスプレイなら 2 が目安です。",
         },
         theme: {
             name: "Mermaid のテーマ",
-            desc: "レンダリングする図の配色テーマ。",
+            desc: "書き出す図の配色。Obsidian の外観テーマとは連動しないため、ここで指定した配色で固定されます。",
             options: {
                 default: "デフォルト",
                 dark: "ダーク",
@@ -63,28 +68,28 @@ const ja: Messages = {
         heading: "ネットワーク",
         mode: {
             name: "プロキシ",
-            desc: "S3 互換ストレージ（Amazon S3 / Cloudflare R2 / Backblaze B2）への接続方法。これらのアップローダーはネットワークへ直接接続するため、Obsidian のシステムプロキシ設定に従いません。",
+            desc: "Amazon S3 / Cloudflare R2 / Backblaze B2 に接続するときプロキシを経由するかどうか。この 3 つだけは Obsidian を通さず AWS SDK が直接通信するため、Windows や macOS のプロキシ設定が効きません。社内プロキシ配下では、ここを設定しないとアップロードがタイムアウトします。他のアップロード先には影響しません。",
             options: {
-                auto: "環境変数から自動検出",
+                auto: "環境変数から自動で使う",
                 off: "プロキシを使わない",
-                manual: "手動で指定",
+                manual: "URL を手入力する",
             },
         },
         url: {
             name: "プロキシ URL",
-            desc: "例: http://proxy.example.com:8080 。認証が必要な場合は http://user:pass@host:port の形式で指定できます。",
+            desc: "例: http://proxy.example.com:8080 。認証が必要なプロキシなら http://ユーザー名:パスワード@proxy.example.com:8080 の形で書きます。",
             placeholder: "http://host:port",
         },
-        detected: (url: string) => `環境変数から検出: ${url}`,
-        notDetected: "HTTPS_PROXY / HTTP_PROXY 環境変数が見つかりません。直接接続でアップロードします。",
-        manualActive: (url: string) => `使用中: ${url}`,
-        manualEmpty: "下の欄にプロキシ URL を入力してください。空のままだと直接接続になります。",
-        disabled: "プロキシは無効です。直接接続でアップロードします。",
+        detected: (url: string) => `環境変数から検出しました。このプロキシを経由します: ${url}`,
+        notDetected: "環境変数 HTTPS_PROXY / HTTP_PROXY が見つかりません。プロキシを経由せず直接接続します。プロキシ配下ならここで失敗するので、「URL を手入力する」に切り替えてください。",
+        manualActive: (url: string) => `このプロキシを経由します: ${url}`,
+        manualEmpty: "下の欄が空です。このままだとプロキシを経由せず直接接続します。",
+        disabled: "プロキシを経由せず直接接続します。環境変数が設定されていても無視します。",
     },
 
     language: {
         name: "言語",
-        desc: "このプラグインの表示言語。「自動」は Obsidian の言語設定に従います。",
+        desc: "この設定画面と通知メッセージの表示言語。「自動」は Obsidian 本体の言語設定に従います。切り替えると即座に反映されます。",
         options: {
             auto: "自動",
             en: "English",
@@ -93,28 +98,28 @@ const ja: Messages = {
     },
 
     imageStore: {
-        heading: "画像ストア",
+        heading: "アップロード先",
         select: {
-            name: "画像ストア",
-            desc: "画像のアップロード先。",
+            name: "アップロード先のサービス",
+            desc: "画像をどこにアップロードするか。ここを変えると、下に並ぶ入力項目がそのサービス用のものに切り替わります。サービスごとの設定は個別に保存されるので、切り替えても前の入力は消えません。",
         },
     },
 
     common: {
         bucketName: {
             name: "バケット名",
-            desc: "画像を保存するバケットの名前。",
+            desc: "画像を保存するバケットの名前。あらかじめ作成しておく必要があります。",
             placeholder: "バケット名を入力",
         },
         targetPath: {
-            name: "保存パス",
-            desc: "画像を保存するパス。{year} {mon} {day} {random} {filename} が使えます。例えば /{year}/{mon}/{day}/{filename} を指定して pic.jpg をアップロードすると /2023/06/08/pic.jpg に保存されます。",
-            placeholder: "パスを入力",
+            name: "保存先のパス",
+            desc: "バケット内のどこに置くか。{year} {mon} {day} {random} {filename} が使えます。例えば /{year}/{mon}/{day}/{filename} なら、pic.jpg は /2026/08/24/pic.jpg として保存されます。空欄にするとファイル名だけになり、同名ファイルが上書きされる恐れがあります。",
+            placeholder: "/{year}/{mon}/{day}/{filename}",
         },
         customDomain: {
-            name: "独自ドメイン名",
-            desc: "独自ドメインが example.com なら、https://example.com/pic.jpg で画像にアクセスできるようになります。",
-            placeholder: "パスを入力",
+            name: "公開に使うドメイン",
+            desc: "ノートに書き込むリンクのドメイン部分。CloudFront などを手前に置いている場合に指定します。cdn.example.com と入れると、リンクは https://cdn.example.com/保存先のパス になります。空欄ならストレージ本来の URL をそのまま使います。アップロード先は変わりません。",
+            placeholder: "cdn.example.com",
         },
     },
 
@@ -123,7 +128,7 @@ const ja: Messages = {
             name: "クライアント ID",
             placeholder: "クライアント ID を入力",
         },
-        descPrefix: "自分のクライアント ID はこちらで発行できます: ",
+        descPrefix: "初期値はプラグイン共用の ID です。アップロードが多いと回数制限に当たるので、自分の ID を発行して差し替えてください: ",
     },
 
     gyazo: {
@@ -131,10 +136,10 @@ const ja: Messages = {
             name: "アクセストークン",
             placeholder: "アクセストークンを入力",
         },
-        tokenDescPrefix: "アプリケーションを作成してアクセストークンを発行してください: ",
+        tokenDescPrefix: "Gyazo でアプリケーションを作り、アクセストークンを発行してください: ",
         accessPolicy: {
             name: "公開範囲",
-            desc: "画像の公開範囲。アップロードした URL を他の人や外部サイトから参照する必要がない場合のみ「自分のみ」を選んでください。",
+            desc: "アップロードした画像を誰が見られるか。「自分のみ」にすると、ノートに貼った URL を他の人や外部サイトから開けなくなります。共有するノートに貼るなら「全員」を選んでください。",
             options: {
                 anyone: "全員",
                 onlyMe: "自分のみ",
@@ -142,7 +147,7 @@ const ja: Messages = {
         },
         commonDescription: {
             name: "共通の説明文",
-            desc: "すべてのアップロードに付ける固定の説明文。空欄にすると説明文を送りません。",
+            desc: "アップロードするすべての画像に同じ説明文を付けます。Gyazo の一覧で後から探しやすくなります。空欄なら説明文を付けません。",
             placeholder: "共通の説明文を入力（省略可）",
         },
     },
@@ -150,16 +155,16 @@ const ja: Messages = {
     oss: {
         region: {
             name: "リージョン",
-            desc: "OSS のデータセンターのリージョン。",
+            desc: "バケットを作成したデータセンターの場所。バケットと一致していないとアップロードに失敗します。選ぶとエンドポイントも自動で切り替わります。",
         },
         accessKeyId: {
             name: "アクセスキー ID",
-            desc: "Aliyun RAM のアクセスキー ID。",
+            desc: "Aliyun RAM で発行したアクセスキー ID。",
             placeholder: "アクセスキー ID を入力",
         },
         accessKeySecret: {
             name: "アクセスキーシークレット",
-            desc: "Aliyun RAM のアクセスキーシークレット。",
+            desc: "アクセスキー ID とペアで発行される秘密の文字列。発行時にしか表示されません。",
             placeholder: "アクセスキーシークレットを入力",
         },
     },
@@ -169,10 +174,10 @@ const ja: Messages = {
             name: "ImageKit ID",
             placeholder: "ImageKit ID を入力",
         },
-        descPrefix: "ID とキーはこちらで取得できます: ",
+        descPrefix: "ID と各キーはダッシュボードで確認できます: ",
         folder: {
-            name: "フォルダ名",
-            desc: "保存先のディレクトリ名。空欄にするとルートフォルダにアップロードします。",
+            name: "保存先フォルダ",
+            desc: "ImageKit 内のどのフォルダに置くか。空欄にするとルートに置かれます。",
             placeholder: "フォルダ名を入力",
         },
         publicKey: {
@@ -187,23 +192,23 @@ const ja: Messages = {
 
     s3: {
         accessKeyId: {
-            name: "AWS S3 アクセスキー ID",
-            desc: "AWS S3 のアクセスキー ID。",
-            placeholder: "アクセスキー ID を入力",
+            name: "アクセスキー ID",
+            desc: "IAM ユーザーのアクセスキー ID。AKIA で始まる 20 文字です。バケットへの PutObject 権限が必要です。",
+            placeholder: "AKIA...",
         },
         secretAccessKey: {
-            name: "AWS S3 シークレットアクセスキー",
-            desc: "AWS S3 のシークレットアクセスキー。",
+            name: "シークレットアクセスキー",
+            desc: "アクセスキー ID とペアで発行される秘密の文字列。作成時にしか表示されないので、控えていない場合は作り直してください。",
             placeholder: "シークレットアクセスキーを入力",
         },
         region: {
-            name: "AWS S3 リージョン",
-            desc: "バケットのリージョン（例: ap-northeast-1）。",
-            placeholder: "リージョンを入力",
+            name: "リージョン",
+            desc: "バケットを作成したリージョン。例: ap-northeast-1（東京）。バケットと一致していないとアップロードに失敗します。AWS コンソールのバケット一覧で確認できます。",
+            placeholder: "ap-northeast-1",
         },
         bucketName: {
-            name: "AWS S3 バケット名",
-            desc: "AWS S3 のバケット名。",
+            name: "バケット名",
+            desc: "画像を保存する S3 バケットの名前。",
             placeholder: "バケット名を入力",
         },
     },
@@ -211,16 +216,16 @@ const ja: Messages = {
     cos: {
         region: {
             name: "リージョン",
-            desc: "COS のデータセンターのリージョン。",
+            desc: "バケットを作成したデータセンターの場所。バケットと一致していないとアップロードに失敗します。",
         },
         secretId: {
             name: "シークレット ID",
-            desc: "Tencent Cloud のシークレット ID。",
+            desc: "Tencent Cloud のアクセス管理で発行した SecretId。",
             placeholder: "シークレット ID を入力",
         },
         secretKey: {
             name: "シークレットキー",
-            desc: "Tencent Cloud のシークレットキー。",
+            desc: "SecretId とペアで発行される秘密の文字列。",
             placeholder: "シークレットキーを入力",
         },
     },
@@ -233,81 +238,81 @@ const ja: Messages = {
         },
         secretKey: {
             name: "シークレットキー",
-            desc: "Qiniu のシークレットキー。",
+            desc: "アクセスキーとペアで発行される秘密の文字列。",
             placeholder: "シークレットキーを入力",
         },
     },
 
     github: {
         repositoryName: {
-            name: "リポジトリ名",
-            desc: "画像を保存する GitHub リポジトリ（owner/repo の形式）。",
-            placeholder: "リポジトリ名を入力（例: username/repo）",
+            name: "リポジトリ",
+            desc: "画像を置くリポジトリを owner/repo の形で指定します。例: akikinyan/my-images。公開リポジトリなら、リンクをそのまま外部から参照できます。",
+            placeholder: "owner/repo",
         },
         branchName: {
-            name: "ブランチ名",
-            desc: "画像を保存するブランチ（既定は main）。",
-            placeholder: "ブランチ名を入力",
+            name: "ブランチ",
+            desc: "コミット先のブランチ。既定は main です。存在しないブランチを指定するとアップロードに失敗します。",
+            placeholder: "main",
         },
         token: {
             name: "パーソナルアクセストークン",
-            placeholder: "GitHub のパーソナルアクセストークンを入力",
+            placeholder: "ghp_... を入力",
         },
-        tokenDescPrefix: "repo スコープを付けたパーソナルアクセストークンをこちらで発行してください: ",
+        tokenDescPrefix: "repo スコープを付けたトークンを発行してください。これがないとコミットできません: ",
     },
 
     r2: {
         accessKeyId: {
-            name: "Cloudflare R2 アクセスキー ID",
-            desc: "Cloudflare R2 のアクセスキー ID。",
+            name: "アクセスキー ID",
+            desc: "Cloudflare の R2 API トークンとして発行したアクセスキー ID。",
             placeholder: "アクセスキー ID を入力",
         },
         secretAccessKey: {
-            name: "Cloudflare R2 シークレットアクセスキー",
-            desc: "Cloudflare R2 のシークレットアクセスキー。",
+            name: "シークレットアクセスキー",
+            desc: "アクセスキー ID とペアで発行される秘密の文字列。発行時にしか表示されません。",
             placeholder: "シークレットアクセスキーを入力",
         },
         endpoint: {
-            name: "Cloudflare R2 エンドポイント",
-            desc: "R2 のエンドポイント URL（例: https://account-id.r2.cloudflarestorage.com）。",
-            placeholder: "R2 のエンドポイントを入力",
+            name: "エンドポイント",
+            desc: "アップロード先の S3 互換エンドポイント。R2 のバケット画面に表示される https://アカウントID.r2.cloudflarestorage.com をそのまま入れます。",
+            placeholder: "https://<account-id>.r2.cloudflarestorage.com",
         },
         bucketName: {
-            name: "Cloudflare R2 バケット名",
-            desc: "Cloudflare R2 のバケット名。",
+            name: "バケット名",
+            desc: "画像を保存する R2 バケットの名前。",
             placeholder: "バケット名を入力",
         },
         customDomain: {
-            name: "R2.dev の URL または独自ドメイン",
-            desc: "https://pub-xxxx.r2.dev のような R2.dev の URL、または独自ドメインを指定できます。独自ドメインが example.com なら https://example.com/pic.jpg で画像にアクセスできます。",
-            placeholder: "ドメイン名を入力",
+            name: "公開に使うドメイン",
+            desc: "ノートに書き込むリンクのドメイン部分。R2 の公開設定で有効にした https://pub-xxxx.r2.dev か、割り当てた独自ドメインを入れます。R2 のエンドポイントは外部から直接参照できないため、ここは実質必須です。",
+            placeholder: "pub-xxxx.r2.dev",
         },
     },
 
     b2: {
         accessKeyId: {
-            name: "Backblaze B2 アクセスキー ID",
-            desc: "Backblaze B2 のアプリケーションキー ID。",
+            name: "アプリケーションキー ID",
+            desc: "Backblaze B2 で発行したアプリケーションキーの ID（keyID）。",
             placeholder: "アプリケーションキー ID を入力",
         },
         secretAccessKey: {
-            name: "Backblaze B2 シークレットアクセスキー",
-            desc: "Backblaze B2 のアプリケーションキー。",
+            name: "アプリケーションキー",
+            desc: "keyID とペアで発行される秘密の文字列。発行時にしか表示されません。",
             placeholder: "アプリケーションキーを入力",
         },
         region: {
-            name: "Backblaze B2 リージョン",
-            desc: "Backblaze B2 のリージョン（例: us-west-004）。",
-            placeholder: "リージョンを入力",
+            name: "リージョン",
+            desc: "バケットのリージョン。例: us-west-004。B2 のバケット画面に表示されるエンドポイントの s3. と .backblazeb2.com の間の部分です。",
+            placeholder: "us-west-004",
         },
         bucketName: {
-            name: "Backblaze B2 バケット名",
-            desc: "Backblaze B2 のバケット名。",
+            name: "バケット名",
+            desc: "画像を保存する B2 バケットの名前。非公開バケットだとリンクを開けません。",
             placeholder: "バケット名を入力",
         },
         customDomain: {
-            name: "独自ドメイン名",
-            desc: "独自ドメインを設定している場合は https://example.com/pic.jpg で画像にアクセスできます。空欄にすると B2 の既定 URL を使います。",
+            name: "公開に使うドメイン",
+            desc: "ノートに書き込むリンクのドメイン部分。CDN や独自ドメインを手前に置いている場合に指定します。空欄なら B2 本来の URL を使います。",
             placeholder: "独自ドメインを入力（省略可）",
         },
     },
@@ -330,14 +335,14 @@ const ja: Messages = {
         cannotLocate: (name: string, path: string) =>
             `${name} が ${path} に見つかりません。画像のパス、またはプラグイン設定の添付ファイルの設定を確認してください。`,
         webImageUploadFailed: (path: string, message: string) =>
-            `Web 画像 ${path} のアップロードに失敗しました: ${message}`,
+            `外部画像 ${path} のアップロードに失敗しました: ${message}`,
         uploadFailed: (path: string, message: string) =>
-            `${path} のアップロードに失敗しました。リモートサーバーがエラーを返しました: ${message}`,
-        readFileFailed: (path: string) => `ファイルの読み込みに失敗しました: ${path}`,
-        mermaidRendering: (count: number) => `Mermaid 図を ${count} 件レンダリング中...`,
+            `${path} のアップロードに失敗しました。サーバーからの応答: ${message}`,
+        readFileFailed: (path: string) => `ファイルを読み込めませんでした: ${path}`,
+        mermaidRendering: (count: number) => `Mermaid 図を ${count} 件変換しています...`,
         mermaidInitFailed: (message: string) => `Mermaid の初期化に失敗しました: ${message}`,
         mermaidBlockFailed: (index: number, message: string) =>
-            `${index} 番目の Mermaid ブロックのレンダリングに失敗しました: ${message}`,
+            `${index} 番目の Mermaid ブロックを変換できませんでした: ${message}`,
     },
 };
 

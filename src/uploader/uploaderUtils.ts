@@ -28,19 +28,32 @@ export class UploaderUtils {
         return result;
     }
 
+    /**
+     * Build the public URL of an uploaded object: swap in the custom domain when
+     * one is configured, and percent-encode the object path.
+     *
+     * The encoding is not cosmetic. Obsidian names pasted screenshots
+     * "Pasted image 20260824080301.png", so object keys routinely contain
+     * spaces, and a literal space in the URL makes the resulting markdown link
+     * invalid — the image silently fails to load. Previously only the
+     * bare-key branch encoded, so every backend that hands in a full URL
+     * (S3, OSS, COS) leaked raw spaces into the note.
+     *
+     * `url` is either a full URL or a bare object key. Encoding is idempotent,
+     * so backends that already encode their keys are unaffected.
+     */
     static customizeDomainName(url: string, customDomainName: string): string {
-        const regex = /https?:\/\/([^/]+)/;
-        customDomainName = customDomainName.replaceAll('https://', '')
-        if (customDomainName && customDomainName.trim() !== "") {
-            if (url.match(regex) != null) {
-                return url.replace(regex, (match, domain: string) => {
-                    return match.replace(domain, customDomainName);
-                })
-            } else {
-                return `https://${customDomainName}/${this.encodePath(url)}`;
-            }
+        const domain = (customDomainName ?? "").replaceAll('https://', '');
+        const hasDomain = domain.trim() !== "";
+
+        const absolute = /^(https?:\/\/)([^/]+)(\/.*)?$/.exec(url);
+        if (absolute) {
+            const [, scheme, originalHost, path = ""] = absolute;
+            return `${scheme}${hasDomain ? domain : originalHost}${this.encodePath(path)}`;
         }
-        return url;
+
+        const key = this.encodePath(url);
+        return hasDomain ? `https://${domain}/${key}` : key;
     }
 
     private static encodePath(path: string): string {

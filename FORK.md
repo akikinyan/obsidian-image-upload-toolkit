@@ -89,6 +89,29 @@ key, so the whole catalogue is type-checked.
 Adding a locale means writing `src/i18n/locales/<code>.ts`, registering it in
 `CATALOGUES`, and extending `detectLocale()`.
 
+## Fixed: spaces in object keys were not percent-encoded
+
+Obsidian names pasted screenshots `Pasted image 20260824080301.png`, so object
+keys routinely contain spaces. `UploaderUtils.customizeDomainName` only
+percent-encoded the path in its bare-object-key branch, added by upstream
+[#84](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/84). Every
+backend that hands in a full URL — S3, Aliyun OSS, Tencent COS — took the other
+branch, which merely swapped the hostname with a regex and let raw spaces
+through into the note:
+
+```
+![Pasted image 20260824080301](https://cdn.example.com/2026/08/24/Pasted image 20260824080301.png)
+```
+
+A literal space terminates the URL in a markdown link, so the image silently
+fails to load. Both branches now encode, and the encoding is idempotent
+(`decodeURIComponent` then `encodeURIComponent`, falling back to plain encoding
+when the key contains a literal `%`), so backends that already encode their own
+keys are unaffected.
+
+The uploaded object key itself is unchanged — S3 keys may contain spaces, and
+the SDK signs them correctly. Only the URL written into the note changes.
+
 ## Other changes
 
 - `display()` in `publishSettingTab.ts` was declared `: unknown` but returned
