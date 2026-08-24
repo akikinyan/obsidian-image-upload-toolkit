@@ -126,29 +126,27 @@ the SDK signs them correctly. Only the URL written into the note changes.
 
 ## Releasing
 
-Inherited `release.yml` builds and attaches the release assets on a tag push, and
-it is active on this fork, so a release is just:
-
-```bash
-# bump manifest.json, package.json and versions.json first
-git tag 1.7.0 && git push origin 1.7.0
-gh run watch
-```
-
-The workflow lints, tests, builds, and attaches `dist/main.js`,
-`dist/manifest.json` and `src/styles.css` — the same three files BRAT downloads.
-
-If the workflow is ever unavailable, the equivalent by hand:
+Releases are cut locally. Bump `version` in `manifest.json` and `package.json`,
+add the version to `versions.json`, then:
 
 ```bash
 npm install --legacy-peer-deps
 npm run lint && npm test && npm run build
-gh release create <version> --title <version> --notes "..." \
+git tag <version> && git push origin <version>
+gh release create <version> --title <version> --notes-file notes.md \
   dist/main.js dist/manifest.json src/styles.css
 ```
 
-Note that this token has no `workflow` scope, so the workflow files themselves
-cannot be pushed from here — edit them in the GitHub web UI if needed.
+Those three files are what BRAT downloads, and the same set upstream's
+`release.yml` attaches.
+
+The inherited `release.yml` does **not** run here, despite `gh workflow list`
+and the Actions API both reporting it as `active`: a fork's inherited workflows
+stay inert until the owner enables them once in the repository's Actions tab.
+Pushing tag `1.7.0` produced zero workflow runs, which is how this was
+established. Enabling Actions in the web UI would make a tag push sufficient —
+until then, use the commands above. Note also that this token has no `workflow`
+scope, so the workflow files themselves cannot be pushed from the CLI.
 
 On Windows with Node 24, `npm test` can fail with "Timeout waiting for worker to
 respond" — vitest workers timing out at startup, unrelated to this plugin
