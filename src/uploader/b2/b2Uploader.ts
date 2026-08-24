@@ -1,6 +1,7 @@
 import ImageUploader from "../imageUploader";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
+import {buildS3RequestHandler, type ProxySetting} from "../../net/proxy";
 
 const EXTENSION_MIME_MAP: Record<string, string> = {
   jpg: "image/jpeg",
@@ -17,16 +18,18 @@ export default class B2Uploader implements ImageUploader {
   private pathTmpl: string;
   private customDomainName: string;
 
-  constructor(setting: B2Setting) {
+  constructor(setting: B2Setting, proxy?: ProxySetting) {
     const region = UploaderUtils.trimCredential(setting.region);
+    const endpoint = `https://s3.${region}.backblazeb2.com`;
     this.s3 = new S3Client({
       credentials: {
         accessKeyId: UploaderUtils.trimCredential(setting.accessKeyId),
         secretAccessKey: UploaderUtils.trimCredential(setting.secretAccessKey),
       },
-      endpoint: `https://s3.${region}.backblazeb2.com`,
+      endpoint,
       region,
       forcePathStyle: true,
+      requestHandler: buildS3RequestHandler(endpoint, proxy),
     });
     this.bucket = UploaderUtils.trimCredential(setting.bucketName);
     this.pathTmpl = setting.path;

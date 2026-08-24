@@ -1,6 +1,7 @@
 import ImageUploader from "../imageUploader";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
+import {buildS3RequestHandler, type ProxySetting} from "../../net/proxy";
 
 export default class R2Uploader implements ImageUploader {
   private readonly r2!: S3Client;
@@ -8,15 +9,17 @@ export default class R2Uploader implements ImageUploader {
   private pathTmpl: string;
   private customDomainName: string;
 
-  constructor(setting: R2Setting) {
+  constructor(setting: R2Setting, proxy?: ProxySetting) {
+    const endpoint = UploaderUtils.normalizeEndpoint(setting.endpoint);
     this.r2 = new S3Client({
       credentials: {
         accessKeyId: UploaderUtils.trimCredential(setting.accessKeyId),
         secretAccessKey: UploaderUtils.trimCredential(setting.secretAccessKey),
       },
-      endpoint: UploaderUtils.normalizeEndpoint(setting.endpoint),
+      endpoint,
       region: 'auto', // Cloudflare R2 uses 'auto' region
       forcePathStyle: true, // Needed for Cloudflare R2
+      requestHandler: buildS3RequestHandler(endpoint || "https://r2.cloudflarestorage.com", proxy),
     });
     this.bucket = UploaderUtils.trimCredential(setting.bucketName);
     this.pathTmpl = setting.path;

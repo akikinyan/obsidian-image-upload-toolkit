@@ -20,8 +20,12 @@ import type {GitHubSetting} from "./uploader/github/gitHubUploader";
 import type {R2Setting} from "./uploader/r2/r2Uploader";
 import type {B2Setting} from "./uploader/b2/b2Uploader";
 import type {GyazoSetting} from "./uploader/gyazo/gyazoUploader";
+import {DEFAULT_PROXY_SETTING, type ProxySetting} from "./net/proxy";
+import {i18n, setLocaleOverride, type LocaleSetting} from "./i18n";
 
 export interface PublishSettings {
+    locale: LocaleSetting; // UI language; "auto" follows Obsidian's language setting
+    proxySetting: ProxySetting; // Proxy used by the S3-compatible uploaders
     imageAltText: boolean;
     replaceOriginalDoc: boolean;
     ignoreProperties: boolean;
@@ -45,6 +49,8 @@ export interface PublishSettings {
 }
 
 const DEFAULT_SETTINGS: PublishSettings = {
+    locale: "auto",
+    proxySetting: DEFAULT_PROXY_SETTING,
     imageAltText: true,
     replaceOriginalDoc: false,
     ignoreProperties: true,
@@ -136,7 +142,7 @@ export default class ObsidianPublish extends Plugin {
         
         this.addCommand({
             id: "publish-page",
-            name: "Publish page",
+            name: i18n().command.publishPage,
             checkCallback: (checking: boolean) => {
                 if (!checking) {
                     this.publish()
@@ -156,6 +162,8 @@ export default class ObsidianPublish extends Plugin {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
         this.settings.imageStore = ImageStore.normalizeId(this.settings.imageStore);
         this.settings.gyazoSetting = Object.assign({}, DEFAULT_SETTINGS.gyazoSetting, loadedData?.gyazoSetting);
+        this.settings.proxySetting = Object.assign({}, DEFAULT_PROXY_SETTING, loadedData?.proxySetting);
+        setLocaleOverride(this.settings.locale);
     }
 
     async saveSettings() {
@@ -164,11 +172,11 @@ export default class ObsidianPublish extends Plugin {
 
     private publish(): void {
         if (!this.imageUploader) {
-            new Notice("Image uploader setup failed, please check setting.")
+            new Notice(i18n().notice.uploaderSetupFailed)
         } else {
             this.imageTagProcessor.process(ACTION_PUBLISH).catch((err: unknown) => {
                 console.error("Image upload toolkit: publish failed", err);
-                new Notice(`Publish failed: ${errorMessage(err)}`, 8000);
+                new Notice(i18n().notice.publishFailed(errorMessage(err)), 8000);
             });
         }
     }

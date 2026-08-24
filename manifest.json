@@ -1,10 +1,10 @@
 {
   "id": "image-upload-toolkit",
   "name": "Image Upload Toolkit",
-  "description": "Upload local images to remote store (Imgur, Gyazo, AliYun OSS, Imagekit, Amazon S3, TencentCloud COS, Qiniu Kodo, GitHub, Cloudflare R2 and Backblaze B2).",
-  "author": "Addo Zhang",
-  "authorUrl": "https://atbug.com",
+  "description": "Upload local images to remote store (Imgur, Gyazo, AliYun OSS, Imagekit, Amazon S3, TencentCloud COS, Qiniu Kodo, GitHub, Cloudflare R2 and Backblaze B2). Fork with HTTP proxy support and a Japanese UI.",
+  "author": "Addo Zhang (fork: akikinyan)",
+  "authorUrl": "https://github.com/akikinyan/obsidian-image-upload-toolkit",
   "isDesktopOnly": true,
   "minAppVersion": "0.12.16",
-  "version": "1.6.7"
+  "version": "1.7.0"
 }
