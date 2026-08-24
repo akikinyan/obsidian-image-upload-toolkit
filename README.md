@@ -260,6 +260,7 @@ The plugin will contact one of the following hostnames depending on which storag
 ### Credentials & data handling
 
 - API keys, tokens, and secrets you enter are stored in Obsidian's plugin data file (`.obsidian/plugins/image-upload-toolkit/data.json`) on your device only.
+- The upload history (fork addition) is kept separately in `.obsidian/plugins/image-upload-toolkit/upload-cache.json` and holds no credentials — only content hashes and the resulting URLs. Because the whole file is rewritten on every publish, excluding it from vault sync is recommended; add `upload-cache.json` to a `.gitignore` in that folder.
 - Credentials are sent only to the corresponding storage service's official endpoint, using the request signing required by that service.
 - The plugin does not transmit your note contents to any service beyond the images you upload.
 

@@ -149,11 +149,18 @@ be safe to sync, the path template because an object uploaded under an older
 template is still reachable at its old URL.
 
 The store lives in `upload-cache.json` in the plugin folder rather than in
-`data.json`. `data.json` holds credentials and is usually excluded from vault
-sync, whereas this file is safe to sync and worth sharing between machines. It is
-capped at 5000 entries, oldest dropped first, and a corrupt or
+`data.json`, which stays a settings file and gains exactly one boolean. The cache
+is capped at 5000 entries, oldest dropped first, and a corrupt or
 unknown-version file is discarded rather than half-read: a wrong hit would
 publish a URL pointing at the wrong object.
+
+Excluding that file from vault sync is the documented recommendation. Its
+contents are safe to sync — `destinationParts` keeps credentials out
+deliberately — but the whole file is rewritten on every publish, so a synced
+copy grows the vault's git history on every commit. At roughly 260 bytes per
+entry that is ~130KB for 500 images and ~1.3MB at the cap. The cost of excluding
+it is that each machine keeps its own history, so the first publish on a second
+machine re-uploads everything once.
 
 Settings → Upload history has the on/off switch, the entry count, and a Clear
 button for when a note links to a URL that no longer works.
