@@ -1,92 +1,320 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import UploadProgressModal from "../../src/ui/uploadProgressModal";
+import UploadProgressModal, {type UploadModes} from "../../src/ui/uploadProgressModal";
 
-function makeModal(): UploadProgressModal {
-    const app = {} as any;
-    const m = new UploadProgressModal(app);
-    return m;
-}
+const MODES_ON: UploadModes = {webp: "on", webpQuality: 80, keepOriginal: false, historyEnabled: true};
 
 describe("UploadProgressModal", () => {
-    let modal: UploadProgressModal;
+    const opened: UploadProgressModal[] = [];
 
-    beforeEach(() => {
-        vi.useFakeTimers();
-        modal = makeModal();
-    });
+    function make(modes: UploadModes | null = null): UploadProgressModal {
+        const modal = new UploadProgressModal({} as any, modes);
+        opened.push(modal);
+        return modal;
+    }
+
+    const text = (modal: UploadProgressModal) => modal.modalEl.textContent ?? "";
+
+    beforeEach(() => vi.useFakeTimers());
 
     afterEach(() => {
         vi.useRealTimers();
-        try { modal.close(); } catch { /* noop */ }
+        while (opened.length) {
+            try { opened.pop()?.close(); } catch { /* noop */ }
+        }
     });
 
-    it("renders Complete + auto-close timer on full success", () => {
-        modal.initialize([{name: "a.png"}, {name: "b.png"}]);
-        modal.updateProgress("a.png", true);
-        modal.updateProgress("b.png", true);
+    describe("while uploading", () => {
+        it("shows the progress bar and the counter", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true);
 
-        const text = modal.modalEl.textContent ?? "";
-        expect(text).toContain("Complete");
-        expect(text).toContain("2/2 (100%)");
-        expect(text).toContain("2 succeeded");
-        expect(text).not.toContain("failed");
+            expect(text(modal)).toContain("1/2 (50%)");
+            const bar = modal.modalEl.querySelector<HTMLElement>(".progress-bar");
+            expect(bar?.style.width).toBe("50%");
+        });
 
-        // auto-close fires after 3s on full success
-        const closeSpy = vi.spyOn(modal, "close");
-        vi.advanceTimersByTime(3000);
-        expect(closeSpy).toHaveBeenCalled();
+        it("recolors the bar as soon as one upload fails", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", false);
+
+            const bar = modal.modalEl.querySelector(".progress-bar");
+            expect(bar?.classList.contains("has-failures")).toBe(true);
+        });
     });
 
-    it("renders Failed and does NOT auto-close when all uploads fail", () => {
-        modal.initialize([{name: "a.png"}]);
-        modal.updateProgress("a.png", false);
+    describe("on completion", () => {
+        // The bar reads 100% and says nothing at that point, so it is replaced.
+        it("drops the progress bar and counter", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
 
-        const text = modal.modalEl.textContent ?? "";
-        expect(text).toContain("Failed");
-        expect(text).toContain("0 succeeded");
-        expect(text).toContain("1 failed");
+            expect(modal.modalEl.querySelector(".progress-bar")).toBeNull();
+            expect(text(modal)).not.toContain("1/1 (100%)");
+        });
 
-        const closeSpy = vi.spyOn(modal, "close");
-        vi.advanceTimersByTime(10000);
-        expect(closeSpy).not.toHaveBeenCalled();
+        it("reports success and starts the auto-close countdown", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true);
+            modal.updateProgress("b.png", true);
+
+            expect(text(modal)).toContain("Complete");
+            expect(text(modal)).toContain("2 succeeded");
+            expect(text(modal)).not.toContain("failed");
+
+            const closeSpy = vi.spyOn(modal, "close");
+            vi.advanceTimersByTime(4000);
+            expect(closeSpy).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(1500);
+            expect(closeSpy).toHaveBeenCalled();
+        });
+
+        // A title still reading "Uploading images" contradicts a finished body.
+        it("retitles itself for the terminal state", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            expect(modal.titleEl.textContent).toBe("Uploading images");
+
+            modal.updateProgress("a.png", true);
+            expect(modal.titleEl.textContent).toBe("Upload complete");
+        });
+
+        it("drops the counts line when it only repeats the header", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true);
+
+            expect(modal.modalEl.querySelector(".progress-counts")).toBeNull();
+        });
+
+        it("keeps the counts line as soon as it carries something", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {reused: true});
+            modal.updateProgress("b.png", true);
+
+            expect(text(modal)).toContain("1 from history");
+        });
+
+        it("reports a total failure", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", false);
+
+            expect(text(modal)).toContain("Failed");
+            expect(text(modal)).toContain("0 succeeded");
+            expect(text(modal)).toContain("1 failed");
+        });
+
+        it("reports a partial failure and does not close itself", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true);
+            modal.updateProgress("b.png", false);
+
+            expect(text(modal)).toContain("Completed with errors");
+            expect(text(modal)).toContain("1 succeeded");
+            expect(text(modal)).toContain("1 failed");
+
+            const closeSpy = vi.spyOn(modal, "close");
+            vi.advanceTimersByTime(10000);
+            expect(closeSpy).not.toHaveBeenCalled();
+        });
     });
 
-    it("renders 'Completed with errors' on partial failure and does NOT auto-close", () => {
-        modal.initialize([{name: "ok.png"}, {name: "bad.png"}, {name: "alsobad.png"}]);
-        modal.updateProgress("ok.png", true);
-        modal.updateProgress("bad.png", false);
-        modal.updateProgress("alsobad.png", false);
+    describe("auto-close countdown", () => {
+        function completed(): UploadProgressModal {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true);
+            return modal;
+        }
 
-        const text = modal.modalEl.textContent ?? "";
-        expect(text).toContain("Completed with errors");
-        expect(text).toContain("2 failed");
-        expect(text).toContain("1 succeeded");
-        expect(text).toContain("2 failed");
+        it("renders a countdown bar", () => {
+            expect(completed().modalEl.querySelector(".auto-close-bar")).not.toBeNull();
+        });
 
-        const closeSpy = vi.spyOn(modal, "close");
-        vi.advanceTimersByTime(10000);
-        expect(closeSpy).not.toHaveBeenCalled();
+        // Someone reading the numbers should not have them pulled away.
+        it("pauses while the pointer is over the modal", () => {
+            const modal = completed();
+            const closeSpy = vi.spyOn(modal, "close");
+
+            vi.advanceTimersByTime(2000);
+            modal.modalEl.dispatchEvent(new MouseEvent("mouseenter"));
+            vi.advanceTimersByTime(60000);
+            expect(closeSpy).not.toHaveBeenCalled();
+            expect(modal.modalEl.querySelector(".auto-close-bar")?.classList.contains("is-paused")).toBe(true);
+        });
+
+        it("resumes with the time that was left, not a fresh countdown", () => {
+            const modal = completed();
+            const closeSpy = vi.spyOn(modal, "close");
+
+            vi.advanceTimersByTime(4000);
+            modal.modalEl.dispatchEvent(new MouseEvent("mouseenter"));
+            vi.advanceTimersByTime(60000);
+            modal.modalEl.dispatchEvent(new MouseEvent("mouseleave"));
+
+            // 1s was left when the pointer arrived, so a little more finishes it.
+            vi.advanceTimersByTime(900);
+            expect(closeSpy).not.toHaveBeenCalled();
+            vi.advanceTimersByTime(200);
+            expect(closeSpy).toHaveBeenCalled();
+        });
     });
 
-    it("marks failed image icons distinctly from pending", () => {
-        modal.initialize([{name: "ok.png"}, {name: "bad.png"}]);
-        modal.updateProgress("ok.png", true);
-        modal.updateProgress("bad.png", false);
+    describe("modes", () => {
+        it("says nothing when neither feature is active", () => {
+            const modal = make({webp: "off", webpQuality: 80, keepOriginal: false, historyEnabled: false});
+            modal.initialize([{name: "a.png"}]);
+            expect(modal.modalEl.querySelector(".progress-modes")).toBeNull();
+        });
 
-        const icons = modal.modalEl.querySelectorAll(".image-status-icon");
-        const classes = Array.from(icons).map(el => el.className);
-        expect(classes.some(c => c.includes("success"))).toBe(true);
-        expect(classes.some(c => c.includes("failed"))).toBe(true);
-        // No icon should be left in `pending` after both images report
-        expect(classes.some(c => c.includes("pending"))).toBe(false);
+        it("announces conversion with its quality, and the history", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+
+            const chips = modal.modalEl.querySelector(".progress-modes")?.textContent ?? "";
+            expect(chips).toContain("WebP conversion on (quality 80)");
+            expect(chips).toContain("Upload history on");
+        });
+
+        it("mentions that originals are kept", () => {
+            const modal = make({...MODES_ON, keepOriginal: true});
+            modal.initialize([{name: "a.png"}]);
+            expect(text(modal)).toContain("originals kept");
+        });
+
+        // Otherwise a note that opted out looks identical to the feature being off.
+        it("distinguishes a note that opted out from the feature being off", () => {
+            const modal = make({...MODES_ON, webp: "skipped"});
+            modal.initialize([{name: "a.png"}]);
+            expect(text(modal)).toContain("skipped for this note");
+        });
     });
 
-    it("adds has-failures class to the progress bar when any upload fails", () => {
-        modal.initialize([{name: "a.png"}, {name: "b.png"}]);
-        modal.updateProgress("a.png", true);
-        modal.updateProgress("b.png", false);
+    describe("size comparison", () => {
+        it("labels the two segments and the original", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 3000, uploadedSize: 750, converted: true});
 
-        const bar = modal.modalEl.querySelector(".progress-bar");
-        expect(bar?.classList.contains("has-failures")).toBe(true);
+            const body = text(modal);
+            expect(body).toContain("Converted 1000 B");
+            expect(body).toContain("Saved 2.9 KB");
+            expect(body).toContain("Original 3.9 KB (-75%)");
+        });
+
+        // Green is the saving, so it must be sized to what was saved, not to
+        // what is still uploaded. Getting this backwards inverts the meaning.
+        it("sizes the green segment to the saving, not the upload", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 3000, uploadedSize: 750, converted: true});
+
+            const fill = modal.modalEl.querySelector<HTMLElement>(".size-compare-saved-fill");
+            expect(fill?.style.width).toBe("75%");
+        });
+
+        // An overlay would be tinted by the translucent border colours several
+        // themes use, so the green has to be its own element.
+        it("draws the green as a child of the track, not as a background", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 900, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 1000, uploadedSize: 900, converted: true});
+
+            const track = modal.modalEl.querySelector(".size-compare-track");
+            expect(track?.querySelector(".size-compare-saved-fill")).not.toBeNull();
+            expect(modal.modalEl.querySelector(".size-compare-fill")).toBeNull();
+        });
+
+        it("is omitted when nothing was converted", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 1000});
+
+            expect(modal.modalEl.querySelector(".size-compare-track")).toBeNull();
+        });
+
+        // Nothing was converted on this run, so a percentage would be invented.
+        it("excludes reused images from the total and counts them separately", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 9999, uploadedSize: 9999, reused: true});
+
+            const body = text(modal);
+            expect(body).toContain("1 from history");
+            expect(body).toContain("Original 1000 B");
+            expect(body).not.toContain("9.8 KB");
+        });
+    });
+
+    describe("image rows", () => {
+        it("shows the size change and a proportional bar for a converted image", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 400, converted: true});
+
+            expect(modal.modalEl.querySelector(".image-detail")?.textContent).toBe("1000 B → 400 B");
+            const fill = modal.modalEl.querySelector<HTMLElement>(".row-bar-fill");
+            expect(fill?.style.width).toBe("40%");
+        });
+
+        // With one image the comparison above the list already says this.
+        it("drops the row result for a single converted image", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 400, converted: true});
+
+            expect(modal.modalEl.querySelector(".image-detail")).toBeNull();
+            expect(modal.modalEl.querySelector(".row-bar")).toBeNull();
+            // The name is still the row's reason for existing.
+            expect(text(modal)).toContain("a.png");
+        });
+
+        it("shows only the size when nothing was converted", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 2048, uploadedSize: 2048});
+
+            expect(modal.modalEl.querySelector(".image-detail")?.textContent).toBe("2 KB");
+            expect(modal.modalEl.querySelector(".row-bar")).toBeNull();
+        });
+
+        it("marks a reused image without claiming a size change", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 1000, reused: true});
+
+            expect(modal.modalEl.querySelector(".image-detail")?.textContent).toBe("reused from history");
+            expect(modal.modalEl.querySelector(".image-status-icon")?.classList.contains("reused")).toBe(true);
+        });
+
+        it("distinguishes failed, successful and pending rows", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}, {name: "c.png"}]);
+            modal.updateProgress("a.png", true);
+            modal.updateProgress("b.png", false);
+
+            const classes = Array.from(modal.modalEl.querySelectorAll(".image-status-icon"))
+                .map(el => el.className);
+            expect(classes.some(c => c.includes("success"))).toBe(true);
+            expect(classes.some(c => c.includes("failed"))).toBe(true);
+            expect(classes.some(c => c.includes("pending"))).toBe(true);
+        });
+
+        it("keeps the full name available when it is truncated", () => {
+            const modal = make();
+            const name = "Pasted image 20260824123708.png";
+            modal.initialize([{name}]);
+            expect(modal.modalEl.querySelector(".image-name")?.getAttribute("title")).toBe(name);
+        });
     });
 });

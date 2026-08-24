@@ -22,10 +22,14 @@ import type {B2Setting} from "./uploader/b2/b2Uploader";
 import type {GyazoSetting} from "./uploader/gyazo/gyazoUploader";
 import {DEFAULT_PROXY_SETTING, type ProxySetting} from "./net/proxy";
 import {i18n, setLocaleOverride, type LocaleSetting} from "./i18n";
+import {DEFAULT_WEBP_SETTING, type WebpSetting} from "./uploader/webpConverter";
+import UploadCache, {CACHE_FILE_NAME} from "./uploader/uploadCache";
 
 export interface PublishSettings {
     locale: LocaleSetting; // UI language; "auto" follows Obsidian's language setting
     proxySetting: ProxySetting; // Proxy used by the S3-compatible uploaders
+    webpSetting: WebpSetting; // WebP conversion of local images
+    rememberUploads: boolean; // Skip re-uploading bytes already sent to this destination
     imageAltText: boolean;
     replaceOriginalDoc: boolean;
     ignoreProperties: boolean;
@@ -51,6 +55,8 @@ export interface PublishSettings {
 const DEFAULT_SETTINGS: PublishSettings = {
     locale: "auto",
     proxySetting: DEFAULT_PROXY_SETTING,
+    webpSetting: DEFAULT_WEBP_SETTING,
+    rememberUploads: true,
     imageAltText: true,
     replaceOriginalDoc: false,
     ignoreProperties: true,
@@ -133,6 +139,7 @@ export default class ObsidianPublish extends Plugin {
     imageTagProcessor: ImageTagProcessor;
     imageUploader: ImageUploader;
     statusBarItem: HTMLElement;
+    private cache: UploadCache | null = null;
 
     async onload() {
         await this.loadSettings();
@@ -163,7 +170,31 @@ export default class ObsidianPublish extends Plugin {
         this.settings.imageStore = ImageStore.normalizeId(this.settings.imageStore);
         this.settings.gyazoSetting = Object.assign({}, DEFAULT_SETTINGS.gyazoSetting, loadedData?.gyazoSetting);
         this.settings.proxySetting = Object.assign({}, DEFAULT_PROXY_SETTING, loadedData?.proxySetting);
+        this.settings.webpSetting = Object.assign({}, DEFAULT_WEBP_SETTING, loadedData?.webpSetting);
         setLocaleOverride(this.settings.locale);
+    }
+
+    /**
+     * The upload cache, or null when the user has turned it off. Kept on the
+     * plugin rather than the processor so a "clear" from the settings tab hits
+     * the same instance the next publish will read.
+     */
+    uploadCache(): UploadCache | null {
+        if (!this.settings.rememberUploads) return null;
+        if (!this.cache) {
+            const dir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+            this.cache = new UploadCache(this.app.vault.adapter, `${dir}/${CACHE_FILE_NAME}`);
+        }
+        return this.cache;
+    }
+
+    async clearUploadCache(): Promise<number> {
+        const cache = this.uploadCache();
+        if (!cache) return 0;
+        await cache.load();
+        const removed = cache.size();
+        await cache.clear();
+        return removed;
     }
 
     async saveSettings() {
@@ -186,10 +217,11 @@ export default class ObsidianPublish extends Plugin {
             this.imageUploader = buildUploader(this.settings);
             // Create ImageTagProcessor with the user's preference for modal vs status bar
             this.imageTagProcessor = new ImageTagProcessor(
-                this.app, 
-                this.settings, 
-                this.imageUploader, 
+                this.app,
+                this.settings,
+                this.imageUploader,
                 this.settings.showProgressModal, // Use modal based on setting
+                this.uploadCache(),
             );
         } catch (e) {
             console.error(`Failed to setup image uploader: ${e}`)

@@ -38,6 +38,57 @@ const en = {
         },
     },
 
+    webp: {
+        heading: "WebP conversion",
+        enabled: {
+            name: "Convert images to WebP",
+            desc: "Convert local images to WebP before uploading, and link the WebP from the note. Applies to local images only; web images and Mermaid diagrams are untouched.",
+        },
+        extensions: {
+            name: "Extensions to convert",
+            desc: "Comma-separated, without the dot. GIF and SVG are excluded by default: conversion goes through a canvas, which keeps only the first frame of an animation and rasterizes vector art.",
+            placeholder: "png, jpg, jpeg",
+        },
+        quality: {
+            name: "Quality",
+            desc: "WebP encoder quality. Lower means smaller and lossier. If the WebP ends up larger than the original, the original is uploaded instead.",
+        },
+        keepOriginal: {
+            name: "Also upload the original",
+            desc: "Upload the untouched original alongside the WebP as an archive copy. The note still links to the WebP.",
+        },
+        originalPath: {
+            name: "Path for originals",
+            desc: "Where the archived originals go. Supports the same variables as the target path. Keep it distinct from the target path so the two do not overwrite each other.",
+            placeholder: "/originals/{year}/{mon}/{day}/{filename}",
+        },
+        originalPathUnsupported: "This image store has no path template, so the originals are uploaded next to the WebP files. Their extensions differ, so they do not collide.",
+        frontmatterProperty: {
+            name: "Frontmatter property",
+            desc: "Name of the note property that overrides conversion for a single note. Set it to true to convert that note, false to leave it alone. Leave this field empty to disable the override.",
+            placeholder: "webp",
+        },
+        frontmatterDefault: {
+            name: "Default when the property is absent",
+            desc: "Applied to notes that do not set the property. Turn it off to convert only the notes that opt in explicitly.",
+        },
+    },
+
+    cache: {
+        heading: "Upload history",
+        enabled: {
+            name: "Skip re-uploading unchanged images",
+            desc: "Remember which file contents have already been uploaded to the current destination, and reuse the URL instead of uploading again. Editing an image uploads it again; changing bucket or domain does too.",
+        },
+        clear: {
+            name: "Clear the upload history",
+            desc: "Forget every recorded upload, so the next publish uploads everything again. Uploaded files are not deleted. Use this when a note links to a URL that no longer works.",
+            button: "Clear",
+        },
+        entries: (count: number) => `${count} recorded uploads`,
+        cleared: (count: number) => `Cleared ${count} recorded uploads`,
+    },
+
     mermaid: {
         heading: "Mermaid",
         convert: {
@@ -317,13 +368,26 @@ const en = {
 
     modal: {
         title: "Uploading images",
+        titleComplete: "Upload complete",
+        titlePartial: "Upload finished with errors",
+        titleFailed: "Upload failed",
         uploading: "Uploading...",
         complete: "Complete",
         failed: "Failed",
         completedWithErrors: (failed: number) => `Completed with errors (${failed} failed)`,
-        images: "Images",
         succeeded: (count: number) => `${count} succeeded`,
         failedCount: (count: number) => `${count} failed`,
+        modeWebp: (quality: number) => `WebP conversion on (quality ${quality})`,
+        modeWebpKeepOriginal: (quality: number) =>
+            `WebP conversion on (quality ${quality}, originals kept)`,
+        modeWebpSkipped: "WebP conversion skipped for this note",
+        modeHistory: "Upload history on",
+        reused: "reused from history",
+        reusedCount: (count: number) => `${count} from history`,
+        sizeConverted: (from: string, to: string) => `${from} → ${to}`,
+        compareConverted: (size: string) => `Converted ${size}`,
+        compareSaved: (size: string) => `Saved ${size}`,
+        compareOriginal: (size: string, delta: string) => `Original ${size} (${delta})`,
     },
 
     notice: {
@@ -336,6 +400,8 @@ const en = {
             `Upload web image ${path} failed: ${message}`,
         uploadFailed: (path: string, message: string) =>
             `Upload ${path} failed, remote server returned an error: ${message}`,
+        originalUploadFailed: (path: string, message: string) =>
+            `The WebP of ${path} was uploaded, but archiving the original failed: ${message}`,
         readFileFailed: (path: string) => `Failed to read file: ${path}`,
         mermaidRendering: (count: number) => `Rendering ${count} mermaid diagram(s)...`,
         mermaidInitFailed: (message: string) => `Mermaid initialization failed: ${message}`,

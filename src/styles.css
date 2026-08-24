@@ -5,37 +5,84 @@
  * inherits the active theme.
  */
 
-/* Upload progress modal */
+/*
+ * Upload progress modal.
+ *
+ * Everything is left aligned against one edge, and every number uses tabular
+ * figures so digits line up in a column. Centred stacked text of varying width
+ * was what made the earlier version read as unstructured.
+ */
 .upload-progress-modal .upload-progress-content {
     padding: 4px 0;
+    position: relative;
 }
 
-.upload-progress-modal .progress-section {
-    margin-bottom: 20px;
-    text-align: center;
+/* Header: state on the left, the settings in effect on the right */
+.upload-progress-modal .progress-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
 }
 
-.upload-progress-modal .status-indicator {
+.upload-progress-modal .status-icon {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
+    color: var(--text-muted);
 }
 
+.upload-progress-modal .status-text {
+    font-weight: var(--font-semibold);
+}
+
+.upload-progress-modal .status-text.has-failures {
+    color: var(--text-error, var(--color-red));
+}
+
+.upload-progress-modal .progress-modes {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.upload-progress-modal .progress-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    background-color: var(--background-modifier-hover);
+    border-radius: 10px;
+    padding: 1px 8px;
+    white-space: nowrap;
+}
+
+.upload-progress-modal .chip-icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+.upload-progress-modal .chip-icon .svg-icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* In-flight: the bar answers "how much longer" */
 .upload-progress-modal .progress-bar-container {
     width: 100%;
-    height: 8px;
+    height: 6px;
     background-color: var(--background-modifier-border);
-    border-radius: 4px;
-    margin-bottom: 10px;
+    border-radius: 3px;
     overflow: hidden;
 }
 
 .upload-progress-modal .progress-bar {
     width: 0;
-    height: 8px;
+    height: 100%;
     background-color: var(--interactive-accent);
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 0.3s ease-in-out;
 }
 
@@ -43,55 +90,99 @@
     background-color: var(--text-error, var(--color-red));
 }
 
-.upload-progress-modal .status-indicator.has-failures .status-text {
-    color: var(--text-error, var(--color-red));
-}
-
-.upload-progress-modal .progress-summary {
-    font-size: var(--font-ui-small);
-    margin-top: 4px;
-}
-
-.upload-progress-modal .summary-success {
-    color: var(--interactive-success, var(--color-green));
-}
-
-.upload-progress-modal .summary-failed {
-    color: var(--text-error, var(--color-red));
-    font-weight: var(--font-semibold);
-}
-
-.upload-progress-modal .summary-sep {
-    color: var(--text-muted);
-}
-
 .upload-progress-modal .progress-text {
     font-size: var(--font-ui-small);
     color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 6px;
 }
 
-.upload-progress-modal .image-list-container {
-    margin-top: 12px;
+/*
+ * Finished: the same strip becomes a size comparison. A bar reading 100% says
+ * nothing; converted-against-original says what the run achieved.
+ */
+.upload-progress-modal .size-compare-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 4px;
 }
 
-.upload-progress-modal .image-list-heading {
-    font-weight: var(--font-semibold);
-    margin-bottom: 6px;
-}
-
-.upload-progress-modal .image-list {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid var(--background-modifier-border);
+/*
+ * The track is the original size; the green segment at its right end is what
+ * was saved, so green grows as compression improves. Painting the uploaded part
+ * green instead would read as "more green is better" while meaning the
+ * opposite. The green is a child rather than a background showing through a
+ * neutral overlay, because Obsidian's border colours are translucent in several
+ * themes and an overlay would tint the green instead of covering it.
+ */
+.upload-progress-modal .size-compare-track {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    height: 8px;
+    background-color: var(--background-modifier-border);
     border-radius: 4px;
-    padding: 8px;
+    overflow: hidden;
+}
+
+.upload-progress-modal .size-compare-saved-fill {
+    height: 100%;
+    background-color: var(--interactive-success, var(--color-green));
+    transition: width 0.4s ease-out;
+}
+
+.upload-progress-modal .size-compare-saved-label {
+    color: var(--interactive-success, var(--color-green));
+}
+
+.upload-progress-modal .size-compare-origin {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 6px;
+}
+
+.upload-progress-modal .progress-counts {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.upload-progress-modal .count-success {
+    color: var(--interactive-success, var(--color-green));
+}
+
+.upload-progress-modal .count-failed {
+    color: var(--text-error, var(--color-red));
+}
+
+/* Rows, not a boxed list: separators are enough at this density */
+.upload-progress-modal .image-list {
+    margin-top: 16px;
+    max-height: 240px;
+    overflow-y: auto;
 }
 
 .upload-progress-modal .image-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 2px 0;
+    padding: 6px 0;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.upload-progress-modal .image-status-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.upload-progress-modal .image-status-icon .svg-icon {
+    width: 14px;
+    height: 14px;
 }
 
 .upload-progress-modal .image-status-icon.success {
@@ -102,10 +193,80 @@
     color: var(--text-error, var(--color-red));
 }
 
-.upload-progress-modal .image-status-icon.pending {
+.upload-progress-modal .image-status-icon.pending,
+.upload-progress-modal .image-status-icon.reused {
     color: var(--text-muted);
 }
 
+/* The name yields space to the result column rather than wrapping */
 .upload-progress-modal .image-name {
     font-size: var(--font-ui-small);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.upload-progress-modal .row-bar {
+    margin-left: auto;
+    flex-shrink: 0;
+    width: 48px;
+    height: 4px;
+    background-color: var(--background-modifier-border);
+    border-radius: 2px;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.upload-progress-modal .row-bar-fill {
+    display: block;
+    height: 100%;
+    background-color: var(--interactive-success, var(--color-green));
+    border-radius: 2px;
+}
+
+.upload-progress-modal .image-detail {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Rows without a bar still push their result to the right edge */
+.upload-progress-modal .image-detail.muted {
+    margin-left: auto;
+}
+
+/*
+ * Countdown to the automatic close. The duration and the frozen width arrive as
+ * custom properties, so the states stay in CSS. `.is-paused` must follow
+ * `.is-running`: they have equal specificity and the later rule has to win.
+ *
+ * The track matters: a bare accent line shrinking on its own reads as a stray
+ * rule, while the same line inside a track reads as progress.
+ */
+.upload-progress-modal .auto-close-track {
+    height: 3px;
+    width: 100%;
+    background-color: var(--background-modifier-border);
+    border-radius: 2px;
+    margin-top: 16px;
+    overflow: hidden;
+}
+
+.upload-progress-modal .auto-close-bar {
+    height: 100%;
+    width: 100%;
+    background-color: var(--interactive-accent);
+    transition: width var(--iut-autoclose-duration, 5000ms) linear;
+}
+
+.upload-progress-modal .auto-close-bar.is-running {
+    width: 0;
+}
+
+.upload-progress-modal .auto-close-bar.is-paused {
+    width: var(--iut-autoclose-width, 100%);
+    transition: none;
 }

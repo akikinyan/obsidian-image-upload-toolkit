@@ -89,6 +89,137 @@ key, so the whole catalogue is type-checked.
 Adding a locale means writing `src/i18n/locales/<code>.ts`, registering it in
 `CATALOGUES`, and extending `detectLocale()`.
 
+## WebP conversion
+
+Local images can be converted to WebP before upload, with the note linking to
+the WebP. Off by default.
+
+Conversion runs in the renderer through a canvas — the same route
+`MermaidProcessor` already uses to rasterize diagrams — so there is no encoder
+dependency. That also fixes the limits: a canvas holds one frame and one raster,
+so animated GIFs would lose every frame but the first and SVGs would lose their
+scalability. Neither is in the default extension list (`png, jpg, jpeg`), though
+the list is editable for anyone who wants that trade.
+
+Three decisions worth recording:
+
+- **The WebP is used only when it is smaller.** Converting a small PNG regularly
+  produces a *larger* file. Publishing the bigger of the two would defeat the
+  point, so `uploadLocalImage` compares and falls back to the original.
+- **Alpha is preserved.** Unlike the mermaid path, the canvas is not pre-filled
+  with white, so transparent PNGs stay transparent.
+- **Failure is never fatal.** An image the renderer cannot decode, a raster past
+  the 16384px canvas limit, or a renderer without a WebP encoder (`toBlob` hands
+  back a PNG rather than failing) all fall back to uploading the original.
+
+`Also upload the original` archives the untouched file alongside the WebP. It
+goes to its own path template through a second uploader built by
+`withPathTemplate`, which keeps the single-method `ImageUploader` interface
+intact — extending it would have meant touching all ten implementations. Stores
+with no path template (Imgur, Gyazo, ImageKit, GitHub) put both files in the same
+place, which is harmless because their extensions differ. If archiving fails the
+publish still succeeds: the WebP is already up, and losing it to save a backup
+copy would be the wrong trade.
+
+Per-note control is a frontmatter property, read as a tri-state: `true` and
+`false` decide, anything else falls back to the configured default. That makes
+the switch work in both directions — leave the default on and mark the odd note
+`false`, or leave it off and mark the odd note `true`.
+
+Conversion applies to local images only. Web images and mermaid diagrams are
+untouched.
+
+## Upload history
+
+Before this, every local image was re-read and re-uploaded on every run of
+"Publish page". With a deterministic path template that only overwrites the same
+object, but a template containing `{random}` accumulates a fresh copy each time —
+and WebP conversion doubles both the encode work and the traffic.
+
+`UploadCache` records the SHA-256 of the bytes that were uploaded against the
+resulting URL, so a second publish of an unchanged image reuses the URL instead
+of uploading again. Editing an image changes its hash and invalidates the entry
+on its own.
+
+The key also carries a short hash of the destination — store id, bucket, region,
+endpoint, custom domain — so repointing the plugin at a different bucket does not
+hand back a URL from the old one. `destinationParts` deliberately excludes
+credentials and the path template: credentials because the cache file is meant to
+be safe to sync, the path template because an object uploaded under an older
+template is still reachable at its old URL.
+
+The store lives in `upload-cache.json` in the plugin folder rather than in
+`data.json`, which stays a settings file and gains exactly one boolean. The cache
+is capped at 5000 entries, oldest dropped first, and a corrupt or
+unknown-version file is discarded rather than half-read: a wrong hit would
+publish a URL pointing at the wrong object.
+
+Excluding that file from vault sync is the documented recommendation. Its
+contents are safe to sync — `destinationParts` keeps credentials out
+deliberately — but the whole file is rewritten on every publish, so a synced
+copy grows the vault's git history on every commit. At roughly 260 bytes per
+entry that is ~130KB for 500 images and ~1.3MB at the cap. The cost of excluding
+it is that each machine keeps its own history, so the first publish on a second
+machine re-uploads everything once.
+
+Settings → Upload history has the on/off switch, the entry count, and a Clear
+button for when a note links to a URL that no longer works.
+
+Keying on the source bytes rather than the uploaded ones is deliberate: it lets a
+hit skip the conversion as well as the upload. The encoder quality is folded into
+the variant string, so lowering it re-converts rather than returning a URL
+encoded at the old setting.
+
+## The progress modal
+
+The modal was four lines of centred text of differing widths, saying the same
+thing three ways: "Complete", "1/1 (100%)" and "1 succeeded" are one fact, and
+with a single image the per-row size repeated the total. It is now left aligned
+against one edge with tabular figures, and the redundant lines are gone.
+
+**The progress bar becomes a size comparison when the run ends.** A bar reading
+100% carries no information; the same strip showing converted against original
+is the clearest statement of what the feature achieved. The two are separate
+layouts rather than one that goes stale, because "how much longer" and "what did
+it save" are different questions. Each converted row carries a miniature of the
+same bar, so a long list shows at a glance which files actually compressed.
+
+The comparison bar's track is the original size, and the green segment at its
+right end is what was saved, so green grows as compression improves. Filling the
+uploaded part with green instead reads as "more green is better" while meaning
+the exact opposite.
+
+The green is a child element rather than a track colour showing through a
+neutral overlay. The overlay version looked right in theory and failed in the
+app: Obsidian's border colours are translucent in several themes, so the
+"neutral" fill tinted the green instead of covering it and the bar read as
+almost entirely green regardless of the ratio. Drawing the segment directly
+removes the dependency on a variable's opacity.
+
+The settings in effect are chips in the header rather than a sentence, the boxed
+list and its "Images" heading are gone in favour of row separators, and long
+names ellipsize with the full name on the row's `title`.
+
+Three details are deliberate:
+
+- **A note that opted out reads as "skipped for this note", not as the feature
+  being off.** Those two states are otherwise indistinguishable, which sends the
+  reader to the settings tab to work out why nothing was converted.
+- **A reused image shows no size change.** Nothing was converted on that run, so
+  a percentage would be a number the plugin never measured.
+- **Auto-close runs 5s with a countdown bar, and pauses while the pointer is
+  over the modal.** Showing results and yanking them away after 3s work against
+  each other. The remaining time is frozen on pause rather than recomputed from
+  the deadline, which keeps sliding into the past while paused.
+- **Anything that would say the same thing twice is dropped.** With one image
+  the row repeats the comparison above it, so the row keeps only its name; a
+  lone success repeats the header, so the counts line disappears; and the title
+  moves off "Uploading images" once the run has finished.
+
+The countdown's widths live in CSS classes and its duration in a custom
+property, because the plugin's lint rules reject static assignments to
+`element.style`.
+
 ## Fixed: spaces in object keys were not percent-encoded
 
 Obsidian names pasted screenshots `Pasted image 20260824080301.png`, so object

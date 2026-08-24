@@ -1,15 +1,19 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import ObsidianPublish from "../publish";
 import ImageStore from "../imageStore";
 import {AliYunRegionList} from "../uploader/oss/common";
 import {TencentCloudRegionList} from "../uploader/cos/common";
 import {i18n, setLocaleOverride, type LocaleSetting} from "../i18n";
 import {detectEnvProxy, redact, type ProxyMode} from "../net/proxy";
+import {formatExtensions, parseExtensions} from "../uploader/webpConverter";
+import {storeSupportsPath} from "../uploader/imageUploaderBuilder";
 
 export default class PublishSettingTab extends PluginSettingTab {
     private plugin: ObsidianPublish;
     private imageStoreDiv: HTMLDivElement;
     private networkDiv: HTMLDivElement;
+    private webpDiv: HTMLDivElement;
+    private cacheDiv: HTMLDivElement;
 
     constructor(app: App, plugin: ObsidianPublish) {
         super(app, plugin);
@@ -88,6 +92,16 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.uploadWebImages = value)
             );
 
+        // ── WebP ──
+        new Setting(containerEl).setName(t.webp.heading).setHeading();
+        this.webpDiv = containerEl.createDiv();
+        this.drawWebpSettings(this.webpDiv);
+
+        // ── Upload history ──
+        new Setting(containerEl).setName(t.cache.heading).setHeading();
+        this.cacheDiv = containerEl.createDiv();
+        this.drawCacheSettings(this.cacheDiv);
+
         // ── Mermaid ──
         new Setting(containerEl).setName(t.mermaid.heading).setHeading();
 
@@ -149,6 +163,9 @@ export default class PublishSettingTab extends PluginSettingTab {
                 dd.onChange(async (v) => {
                     this.plugin.settings.imageStore = v;
                     this.plugin.setupImageUploader();
+                    // Whether a separate path for the originals is available
+                    // depends on the store, so that section needs a redraw too.
+                    this.drawWebpSettings(this.webpDiv);
                     await this.drawImageStoreSettings(this.imageStoreDiv);
                 });
             });
@@ -161,6 +178,149 @@ export default class PublishSettingTab extends PluginSettingTab {
         }).catch(err => {
             console.error("Image upload toolkit: saveSettings failed", err);
         });
+    }
+
+    /**
+     * WebP conversion. Rendered into its own div because the dependent fields
+     * only make sense once the feature is on, and the originals path only once
+     * the store actually has a path template.
+     */
+    private drawWebpSettings(parentEL: HTMLDivElement) {
+        parentEL.empty();
+        const t = i18n();
+        const webp = this.plugin.settings.webpSetting;
+
+        new Setting(parentEL)
+            .setName(t.webp.enabled.name)
+            .setDesc(t.webp.enabled.desc)
+            .addToggle(toggle =>
+                toggle
+                    .setValue(webp.enabled)
+                    .onChange(value => {
+                        webp.enabled = value;
+                        this.drawWebpSettings(parentEL);
+                    })
+            );
+
+        if (!webp.enabled) return;
+
+        new Setting(parentEL)
+            .setName(t.webp.extensions.name)
+            .setDesc(t.webp.extensions.desc)
+            .addText(text =>
+                text
+                    .setPlaceholder(t.webp.extensions.placeholder)
+                    .setValue(formatExtensions(webp.extensions))
+                    .onChange(value => webp.extensions = parseExtensions(value))
+            );
+
+        new Setting(parentEL)
+            .setName(t.webp.quality.name)
+            .setDesc(t.webp.quality.desc)
+            .addSlider(slider =>
+                slider
+                    .setLimits(1, 100, 1)
+                    .setValue(webp.quality)
+                    .setDynamicTooltip()
+                    .onChange(value => webp.quality = value)
+            );
+
+        new Setting(parentEL)
+            .setName(t.webp.keepOriginal.name)
+            .setDesc(t.webp.keepOriginal.desc)
+            .addToggle(toggle =>
+                toggle
+                    .setValue(webp.keepOriginal)
+                    .onChange(value => {
+                        webp.keepOriginal = value;
+                        this.drawWebpSettings(parentEL);
+                    })
+            );
+
+        if (webp.keepOriginal) {
+            if (storeSupportsPath(this.plugin.settings.imageStore)) {
+                new Setting(parentEL)
+                    .setName(t.webp.originalPath.name)
+                    .setDesc(t.webp.originalPath.desc)
+                    .addText(text =>
+                        text
+                            .setPlaceholder(t.webp.originalPath.placeholder)
+                            .setValue(webp.originalPath)
+                            .onChange(value => webp.originalPath = value)
+                    );
+            } else {
+                parentEL.createDiv({
+                    cls: "setting-item-description",
+                    text: t.webp.originalPathUnsupported,
+                });
+            }
+        }
+
+        new Setting(parentEL)
+            .setName(t.webp.frontmatterProperty.name)
+            .setDesc(t.webp.frontmatterProperty.desc)
+            .addText(text =>
+                text
+                    .setPlaceholder(t.webp.frontmatterProperty.placeholder)
+                    .setValue(webp.frontmatterProperty)
+                    .onChange(value => webp.frontmatterProperty = value.trim())
+            );
+
+        new Setting(parentEL)
+            .setName(t.webp.frontmatterDefault.name)
+            .setDesc(t.webp.frontmatterDefault.desc)
+            .addToggle(toggle =>
+                toggle
+                    .setValue(webp.frontmatterDefault)
+                    .onChange(value => webp.frontmatterDefault = value)
+            );
+    }
+
+    /** Upload history: the on/off switch, the entry count, and the reset button. */
+    private drawCacheSettings(parentEL: HTMLDivElement) {
+        parentEL.empty();
+        const t = i18n();
+
+        new Setting(parentEL)
+            .setName(t.cache.enabled.name)
+            .setDesc(t.cache.enabled.desc)
+            .addToggle(toggle =>
+                toggle
+                    .setValue(this.plugin.settings.rememberUploads)
+                    .onChange(value => {
+                        this.plugin.settings.rememberUploads = value;
+                        this.drawCacheSettings(parentEL);
+                    })
+            );
+
+        if (!this.plugin.settings.rememberUploads) return;
+
+        const countEl = parentEL.createDiv({cls: "setting-item-description"});
+        const showCount = () => {
+            const cache = this.plugin.uploadCache();
+            if (!cache) return;
+            void cache.load()
+                .then(() => countEl.setText(t.cache.entries(cache.size())))
+                .catch(err => console.error("Image upload toolkit: could not read the upload cache", err));
+        };
+        showCount();
+
+        new Setting(parentEL)
+            .setName(t.cache.clear.name)
+            .setDesc(t.cache.clear.desc)
+            .addButton(button =>
+                button
+                    .setButtonText(t.cache.clear.button)
+                    .setWarning()
+                    .onClick(() => {
+                        void this.plugin.clearUploadCache()
+                            .then(removed => {
+                                new Notice(i18n().cache.cleared(removed));
+                                showCount();
+                            })
+                            .catch(err => console.error("Image upload toolkit: could not clear the upload cache", err));
+                    })
+            );
     }
 
     /**
