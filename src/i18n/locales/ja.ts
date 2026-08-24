@@ -370,6 +370,9 @@ const ja: Messages = {
 
     modal: {
         title: "画像をアップロード中",
+        titleComplete: "アップロード完了",
+        titlePartial: "アップロード完了（一部失敗）",
+        titleFailed: "アップロード失敗",
         uploading: "アップロード中...",
         complete: "完了",
         failed: "失敗",
@@ -383,9 +386,9 @@ const ja: Messages = {
         reused: "履歴から再利用",
         reusedCount: (count: number) => `履歴から ${count} 件`,
         sizeConverted: (from: string, to: string) => `${from} → ${to}`,
-        compareOriginal: (size: string) => `元 ${size}`,
         compareConverted: (size: string) => `変換後 ${size}`,
-        saved: (amount: string, delta: string) => `${amount} 削減（${delta}）`,
+        compareSaved: (size: string) => `削減 ${size}`,
+        compareOriginal: (size: string, delta: string) => `元 ${size}（${delta}）`,
     },
 
     notice: {

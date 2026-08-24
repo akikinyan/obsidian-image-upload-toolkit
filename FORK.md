@@ -184,6 +184,11 @@ layouts rather than one that goes stale, because "how much longer" and "what did
 it save" are different questions. Each converted row carries a miniature of the
 same bar, so a long list shows at a glance which files actually compressed.
 
+The comparison bar's track is the original size and is painted green; a neutral
+fill covers the part that still gets uploaded, leaving the saved portion
+showing. Filling the uploaded part with green instead reads as "more green is
+better" while meaning the exact opposite.
+
 The settings in effect are chips in the header rather than a sentence, the boxed
 list and its "Images" heading are gone in favour of row separators, and long
 names ellipsize with the full name on the row's `title`.
@@ -199,6 +204,10 @@ Three details are deliberate:
   over the modal.** Showing results and yanking them away after 3s work against
   each other. The remaining time is frozen on pause rather than recomputed from
   the deadline, which keeps sliding into the past while paused.
+- **Anything that would say the same thing twice is dropped.** With one image
+  the row repeats the comparison above it, so the row keeps only its name; a
+  lone success repeats the header, so the counts line disappears; and the title
+  moves off "Uploading images" once the run has finished.
 
 The countdown's widths live in CSS classes and its duration in a custom
 property, because the plugin's lint rules reject static assignments to

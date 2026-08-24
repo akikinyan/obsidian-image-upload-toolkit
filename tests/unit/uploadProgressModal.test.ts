@@ -72,6 +72,33 @@ describe("UploadProgressModal", () => {
             expect(closeSpy).toHaveBeenCalled();
         });
 
+        // A title still reading "Uploading images" contradicts a finished body.
+        it("retitles itself for the terminal state", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            expect(modal.titleEl.textContent).toBe("Uploading images");
+
+            modal.updateProgress("a.png", true);
+            expect(modal.titleEl.textContent).toBe("Upload complete");
+        });
+
+        it("drops the counts line when it only repeats the header", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true);
+
+            expect(modal.modalEl.querySelector(".progress-counts")).toBeNull();
+        });
+
+        it("keeps the counts line as soon as it carries something", () => {
+            const modal = make();
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {reused: true});
+            modal.updateProgress("b.png", true);
+
+            expect(text(modal)).toContain("1 from history");
+        });
+
         it("reports a total failure", () => {
             const modal = make();
             modal.initialize([{name: "a.png"}]);
@@ -170,16 +197,25 @@ describe("UploadProgressModal", () => {
     });
 
     describe("size comparison", () => {
-        it("compares converted against original, and states what was saved", () => {
+        it("labels the two segments and the original", () => {
             const modal = make(MODES_ON);
             modal.initialize([{name: "a.png"}, {name: "b.png"}]);
             modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
             modal.updateProgress("b.png", true, {originalSize: 3000, uploadedSize: 750, converted: true});
 
             const body = text(modal);
-            expect(body).toContain("Original 3.9 KB");
             expect(body).toContain("Converted 1000 B");
-            expect(body).toContain("2.9 KB saved (-75%)");
+            expect(body).toContain("Saved 2.9 KB");
+            expect(body).toContain("Original 3.9 KB (-75%)");
+        });
+
+        // The neutral fill covers what still gets uploaded, so the green left
+        // showing is the saving. Filling green would mean the reverse.
+        it("fills only the part that still gets uploaded", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 3000, uploadedSize: 750, converted: true});
 
             const fill = modal.modalEl.querySelector<HTMLElement>(".size-compare-fill");
             expect(fill?.style.width).toBe("25%");
@@ -191,7 +227,6 @@ describe("UploadProgressModal", () => {
             modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 1000});
 
             expect(modal.modalEl.querySelector(".size-compare-track")).toBeNull();
-            expect(text(modal)).toContain("1 succeeded");
         });
 
         // Nothing was converted on this run, so a percentage would be invented.
@@ -211,12 +246,24 @@ describe("UploadProgressModal", () => {
     describe("image rows", () => {
         it("shows the size change and a proportional bar for a converted image", () => {
             const modal = make(MODES_ON);
-            modal.initialize([{name: "a.png"}]);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
             modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 400, converted: true});
 
             expect(modal.modalEl.querySelector(".image-detail")?.textContent).toBe("1000 B → 400 B");
             const fill = modal.modalEl.querySelector<HTMLElement>(".row-bar-fill");
             expect(fill?.style.width).toBe("40%");
+        });
+
+        // With one image the comparison above the list already says this.
+        it("drops the row result for a single converted image", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 400, converted: true});
+
+            expect(modal.modalEl.querySelector(".image-detail")).toBeNull();
+            expect(modal.modalEl.querySelector(".row-bar")).toBeNull();
+            // The name is still the row's reason for existing.
+            expect(text(modal)).toContain("a.png");
         });
 
         it("shows only the size when nothing was converted", () => {

@@ -110,24 +110,34 @@
     margin-bottom: 4px;
 }
 
+/*
+ * The track is the original size and is painted green; the neutral fill covers
+ * the part that still gets uploaded, leaving the saved portion showing. Green
+ * therefore grows as compression improves. Painting the uploaded part green
+ * would read as "more green is better" while meaning the opposite.
+ */
 .upload-progress-modal .size-compare-track {
     width: 100%;
     height: 8px;
-    background-color: var(--background-modifier-border);
+    background-color: var(--interactive-success, var(--color-green));
     border-radius: 4px;
     overflow: hidden;
 }
 
 .upload-progress-modal .size-compare-fill {
     height: 100%;
-    background-color: var(--interactive-success, var(--color-green));
-    border-radius: 4px;
+    background-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+    border-radius: 4px 0 0 4px;
     transition: width 0.4s ease-out;
 }
 
-.upload-progress-modal .size-compare-saved {
+.upload-progress-modal .size-compare-saved-label {
+    color: var(--interactive-success, var(--color-green));
+}
+
+.upload-progress-modal .size-compare-origin {
     font-size: var(--font-ui-small);
-    color: var(--text-normal);
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     margin-top: 6px;
 }
@@ -233,7 +243,7 @@
 .upload-progress-modal .auto-close-bar {
     height: 2px;
     width: 100%;
-    background-color: var(--background-modifier-border);
+    background-color: var(--interactive-accent);
     border-radius: 1px;
     margin-top: 14px;
     transition: width var(--iut-autoclose-duration, 5000ms) linear;

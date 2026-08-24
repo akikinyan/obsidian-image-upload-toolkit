@@ -368,6 +368,9 @@ const en = {
 
     modal: {
         title: "Uploading images",
+        titleComplete: "Upload complete",
+        titlePartial: "Upload finished with errors",
+        titleFailed: "Upload failed",
         uploading: "Uploading...",
         complete: "Complete",
         failed: "Failed",
@@ -382,9 +385,9 @@ const en = {
         reused: "reused from history",
         reusedCount: (count: number) => `${count} from history`,
         sizeConverted: (from: string, to: string) => `${from} → ${to}`,
-        compareOriginal: (size: string) => `Original ${size}`,
         compareConverted: (size: string) => `Converted ${size}`,
-        saved: (amount: string, delta: string) => `${amount} saved (${delta})`,
+        compareSaved: (size: string) => `Saved ${size}`,
+        compareOriginal: (size: string, delta: string) => `Original ${size} (${delta})`,
     },
 
     notice: {

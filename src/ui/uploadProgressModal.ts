@@ -173,30 +173,39 @@ export default class UploadProgressModal extends Modal {
     private renderSizeComparison(): void {
         if (this.convertedCount === 0 || this.convertedFromBytes <= 0) return;
         const t = i18n();
+        const saved = Math.max(0, this.convertedFromBytes - this.convertedToBytes);
 
+        // The two labels name the two segments of the bar below them.
         const labels = this.bodyEl.createDiv({cls: "size-compare-labels"});
         labels.createSpan({text: t.modal.compareConverted(formatBytes(this.convertedToBytes))});
         labels.createSpan({
-            text: t.modal.compareOriginal(formatBytes(this.convertedFromBytes)),
-            cls: "size-compare-original",
+            text: t.modal.compareSaved(formatBytes(saved)),
+            cls: "size-compare-saved-label",
         });
 
+        // The track is the original size. Its left part, in a neutral tone, is
+        // what still gets uploaded; the green remainder is what was saved.
+        // Colouring the uploaded part green would read as "more green is
+        // better" while meaning the opposite.
         const track = this.bodyEl.createDiv({cls: "size-compare-track"});
         const ratio = Math.max(0, Math.min(1, this.convertedToBytes / this.convertedFromBytes));
         track.createDiv({cls: "size-compare-fill"}).style.width = `${ratio * 100}%`;
 
-        const saved = this.convertedFromBytes - this.convertedToBytes;
         this.bodyEl.createDiv({
-            cls: "size-compare-saved",
-            text: t.modal.saved(
-                formatBytes(Math.max(0, saved)),
+            cls: "size-compare-origin",
+            text: t.modal.compareOriginal(
+                formatBytes(this.convertedFromBytes),
                 formatSizeDelta(this.convertedFromBytes, this.convertedToBytes),
             ),
         });
     }
 
-    /** One line of counts, only for the facts that apply to this run. */
+    /**
+     * One line of counts, and only when it adds something. A lone success
+     * repeats what the header already says.
+     */
     private renderCounts(): void {
+        if (this.successCount <= 1 && this.failureCount === 0 && this.reusedCount === 0) return;
         const t = i18n();
         const counts = this.bodyEl.createDiv({cls: "progress-counts"});
         counts.createSpan({text: t.modal.succeeded(this.successCount), cls: "count-success"});
@@ -263,7 +272,10 @@ export default class UploadProgressModal extends Modal {
         }
     }
 
-    /** Swap the header for the terminal state. */
+    /**
+     * Swap the header for the terminal state, title included: leaving the title
+     * on "Uploading images" contradicts a body that says the run has finished.
+     */
     private renderStatus(): void {
         const t = i18n();
         this.statusIconEl.empty();
@@ -271,14 +283,17 @@ export default class UploadProgressModal extends Modal {
         if (this.failureCount === 0) {
             setIcon(this.statusIconEl, "check");
             this.statusTextEl.setText(t.modal.complete);
+            this.titleEl.setText(t.modal.titleComplete);
         } else if (this.successCount === 0) {
             setIcon(this.statusIconEl, "x-circle");
             this.statusTextEl.setText(t.modal.failed);
             this.statusTextEl.classList.add("has-failures");
+            this.titleEl.setText(t.modal.titleFailed);
         } else {
             setIcon(this.statusIconEl, "alert-triangle");
             this.statusTextEl.setText(t.modal.completedWithErrors(this.failureCount));
             this.statusTextEl.classList.add("has-failures");
+            this.titleEl.setText(t.modal.titlePartial);
         }
     }
 
@@ -331,6 +346,10 @@ export default class UploadProgressModal extends Modal {
         }
 
         if (detail.converted && detail.originalSize && detail.uploadedSize) {
+            // With a single image the comparison above the list already says
+            // this, in a more readable form. Repeating it in the row was the
+            // duplication this redesign set out to remove.
+            if (this.totalImages === 1) return;
             const ratio = Math.max(0, Math.min(1, detail.uploadedSize / detail.originalSize));
             const bar = itemEl.createSpan({cls: "row-bar"});
             bar.createSpan({cls: "row-bar-fill"}).style.width = `${ratio * 100}%`;
