@@ -41,6 +41,57 @@ const ja: Messages = {
         },
     },
 
+    webp: {
+        heading: "WebP 変換",
+        enabled: {
+            name: "画像を WebP に変換する",
+            desc: "オン: アップロードの前にローカル画像を WebP に変換し、ノートには WebP のリンクを書きます。対象はローカル画像だけで、外部サイトの画像と Mermaid 図は変換しません。オフ: 元の形式のままアップロードします。",
+        },
+        extensions: {
+            name: "変換する拡張子",
+            desc: "カンマ区切りで、ドットは不要です。GIF と SVG を既定から外しているのは、変換が canvas 経由のためです。アニメーション GIF は1コマ目だけになり、SVG はラスタライズされて拡大に耐えなくなります。",
+            placeholder: "png, jpg, jpeg",
+        },
+        quality: {
+            name: "品質",
+            desc: "WebP の圧縮品質。下げるほど小さく、劣化も大きくなります。写真は 75 前後、文字を含む図は 90 前後が目安です。変換後のほうが大きくなった画像は、自動的に元のファイルでアップロードします。",
+        },
+        keepOriginal: {
+            name: "オリジナルも保存する",
+            desc: "オン: 無変換の元ファイルも保管用にアップロードします。ノートに書かれるのは WebP のリンクのままです。オフ: WebP だけをアップロードし、元ファイルはストレージに残りません。",
+        },
+        originalPath: {
+            name: "オリジナルの保存先パス",
+            desc: "保管用の元ファイルを置く場所。「保存先のパス」と同じ変数が使えます。同じパスにすると WebP と元ファイルが混在するため、別の場所にしてください。",
+            placeholder: "/originals/{year}/{mon}/{day}/{filename}",
+        },
+        originalPathUnsupported: "このアップロード先はパスを指定できないため、元ファイルは WebP と同じ場所に置かれます。拡張子が違うので上書きは起きません。",
+        frontmatterProperty: {
+            name: "ノート単位で切り替えるプロパティ",
+            desc: "ノートのプロパティ名。そのノートで true にすると変換し、false にすると変換しません。空欄にするとノート単位の切り替えを無効にします。",
+            placeholder: "webp",
+        },
+        frontmatterDefault: {
+            name: "プロパティが無いときの既定",
+            desc: "プロパティを書いていないノートに適用されます。オフにすると、プロパティで明示したノートだけを変換する運用になります。",
+        },
+    },
+
+    cache: {
+        heading: "アップロード履歴",
+        enabled: {
+            name: "変更のない画像を再アップロードしない",
+            desc: "オン: アップロード済みのファイル内容を記録し、次回以降は同じ URL を使い回します。画像を編集すれば再アップロードされ、バケットやドメインを変えたときも記録は使われません。オフ: 実行のたびに毎回アップロードします。",
+        },
+        clear: {
+            name: "アップロード履歴を消去",
+            desc: "記録をすべて破棄し、次回の実行で全画像をアップロードし直します。アップロード済みのファイル自体は削除されません。ノートのリンク先が開けなくなったときに使ってください。",
+            button: "消去",
+        },
+        entries: (count: number) => `記録件数 ${count} 件`,
+        cleared: (count: number) => `アップロード履歴を ${count} 件消去しました`,
+    },
+
     mermaid: {
         heading: "Mermaid",
         convert: {
@@ -338,6 +389,8 @@ const ja: Messages = {
             `外部画像 ${path} のアップロードに失敗しました: ${message}`,
         uploadFailed: (path: string, message: string) =>
             `${path} のアップロードに失敗しました。サーバーからの応答: ${message}`,
+        originalUploadFailed: (path: string, message: string) =>
+            `${path} の WebP はアップロードできましたが、元ファイルの保管に失敗しました: ${message}`,
         readFileFailed: (path: string) => `ファイルを読み込めませんでした: ${path}`,
         mermaidRendering: (count: number) => `Mermaid 図を ${count} 件変換しています...`,
         mermaidInitFailed: (message: string) => `Mermaid の初期化に失敗しました: ${message}`,

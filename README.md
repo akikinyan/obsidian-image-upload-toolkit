@@ -47,6 +47,8 @@
 - ✅ **Web Image Upload** - Download and re-upload web images to your storage (optional)
 - ✅ **Mermaid Conversion** - Automatically convert mermaid diagrams to PNG images during publish (optional)
 - ✅ **Proxy Support** - Route the S3-compatible uploaders through an HTTP proxy (fork addition, see [FORK.md](FORK.md#proxy-support))
+- ✅ **WebP Conversion** - Convert local images to WebP before upload, optionally archiving the originals (fork addition, optional)
+- ✅ **Upload History** - Skip re-uploading images whose contents have not changed (fork addition)
 - ✅ **Japanese UI** - Follows Obsidian's own language setting (fork addition)
 
 ### Supported Storage Services (10 providers)
@@ -369,7 +371,13 @@ npm run dev
 
 ## 📝 Changelog
 
-### v1.7.0 (Latest — this fork)
+### v1.8.0 (Latest — this fork)
+- ✨ WebP conversion for local images, off by default. Configurable extension list (`png, jpg, jpeg`), quality, and a per-note frontmatter override that works in both directions
+- ✨ Optionally archive the untouched original alongside the WebP, at its own path template
+- ✨ Upload history: images whose contents have not changed reuse their existing URL instead of being uploaded again. Stored in `upload-cache.json`, with a Clear button in the settings tab
+- 🔧 The WebP is used only when it is actually smaller than the original, so small PNGs are not made worse
+
+### v1.7.0 (this fork)
 - ✨ HTTP proxy support for AWS S3, Cloudflare R2 and Backblaze B2, with auto-detection from the environment, a manual override, and an off switch
 - ✨ Japanese UI for the settings tab, progress modal, notices and command name; follows Obsidian's language setting and can be pinned in the settings tab
 - 🐛 Fixed object paths not being percent-encoded by the uploaders that build a full URL (S3, Aliyun OSS, Tencent COS), which broke image links for filenames containing spaces

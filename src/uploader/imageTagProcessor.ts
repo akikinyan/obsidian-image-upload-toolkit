@@ -8,6 +8,9 @@ import MermaidProcessor from "./mermaidProcessor";
 import ImageStore from "../imageStore";
 import {errorMessage} from "./errorUtils";
 import {i18n} from "../i18n";
+import {convertToWebp, matchesExtension, resolveNoteOptIn} from "./webpConverter";
+import UploadCache, {cacheKey, destinationId, sha256} from "./uploadCache";
+import buildUploader, {destinationParts, storeSupportsPath, withPathTemplate} from "./imageUploaderBuilder";
 
 export const MD_REGEX = /!\[([^\]]*)\]\(([^)]*)\)/g;
 export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
@@ -87,19 +90,35 @@ export default class ImageTagProcessor {
     private adapter: FileSystemAdapter;
     private progressModal: UploadProgressModal | null = null;
     private readonly useModal: boolean = true; // Set to true to use modal, false to use status bar
+    private readonly cache: UploadCache | null;
+    /** Short id of the current destination, resolved once per run. */
+    private destination = "";
+    /** Second uploader writing to the originals path, built only when needed. */
+    private originalUploaderInstance: ImageUploader | null = null;
 
-    constructor(app: App, settings: PublishSettings, imageUploader: ImageUploader, useModal: boolean = true) {
+    constructor(
+        app: App,
+        settings: PublishSettings,
+        imageUploader: ImageUploader,
+        useModal: boolean = true,
+        cache: UploadCache | null = null,
+    ) {
         this.app = app;
         this.adapter = this.app.vault.adapter as FileSystemAdapter;
         this.settings = settings;
         this.imageUploader = imageUploader;
         this.useModal = useModal;
+        this.cache = cache;
     }
 
     public async process(action: string): Promise<void> {
         let value = this.getValue();
         const basePath = this.adapter.getBasePath();
         const promises: Promise<Image>[] = [];
+        this.destination = await destinationId(destinationParts(this.settings));
+        await this.cache?.load();
+        // Resolved once per run: the note's frontmatter cannot change mid-publish.
+        const allowWebp = this.noteAllowsWebp();
         // Convert mermaid code blocks to images if enabled
         let mermaidUrls = new Set<string>();
         if (this.settings.convertMermaid) {
@@ -163,32 +182,7 @@ export default class ImageTagProcessor {
                 continue; // Skip to the next image
             }
             
-            try {
-                const buf = await this.adapter.readBinary(image.path);
-                promises.push(new Promise<Image>((resolve, reject) => {
-                    uploader.upload(new File([buf], image.name), basePath + '/' + image.path)
-                        .then(imgUrl => {
-                            image.url = imgUrl;
-                            // Update progress on successful upload
-                            if (this.progressModal) {
-                                this.progressModal.updateProgress(image.name, true);
-                            }
-                            resolve(image);
-                        })
-                        .catch(e => {
-                            // Also update progress on failed upload
-                            if (this.progressModal) {
-                                this.progressModal.updateProgress(image.name, false);
-                            }
-                            const errorMessageText = i18n().notice.uploadFailed(image.path, errorMessage(e));
-                            new Notice(errorMessageText, 10000);
-                            reject(new Error(errorMessageText));
-                        });
-                }));
-            } catch (error) {
-                console.error(`Failed to read file: ${image.path}`, error);
-                new Notice(i18n().notice.readFileFailed(image.path), 5000);
-            }
+            promises.push(this.uploadLocalImage(image, basePath, allowWebp));
         }
 
         if (promises.length === 0) {
@@ -247,6 +241,8 @@ export default class ImageTagProcessor {
             value = value.replace(PROPERTIES_REGEX, '');
         }
 
+        await this.cache?.save();
+
         switch (action) {
             case ACTION_PUBLISH:
                 await navigator.clipboard.writeText(value);
@@ -255,6 +251,119 @@ export default class ImageTagProcessor {
             default:
                 throw new Error("invalid action!");
         }
+    }
+
+    /**
+     * Read one local image, optionally convert it to WebP, and upload it.
+     *
+     * The WebP is used only when it is actually smaller. Converting a small
+     * PNG frequently produces a larger file, and publishing the bigger of the
+     * two would defeat the point of the feature.
+     */
+    private async uploadLocalImage(image: Image, basePath: string, allowWebp: boolean): Promise<Image> {
+        let original: File;
+        try {
+            const buf = await this.adapter.readBinary(image.path);
+            original = new File([buf], image.name);
+        } catch (error) {
+            console.error(`Failed to read file: ${image.path}`, error);
+            new Notice(i18n().notice.readFileFailed(image.path), 5000);
+            this.progressModal?.updateProgress(image.name, false);
+            throw error instanceof Error ? error : new Error(String(error));
+        }
+
+        const fullPath = basePath + '/' + image.path;
+        const webpSetting = this.settings.webpSetting;
+
+        try {
+            let display = original;
+            let converted = false;
+            if (allowWebp && matchesExtension(image.name, webpSetting.extensions)) {
+                const webp = await convertToWebp(original, webpSetting.quality);
+                if (webp && webp.size < original.size) {
+                    display = webp;
+                    converted = true;
+                } else if (webp) {
+                    console.debug(
+                        `Image upload toolkit: ${image.name} grew from ${original.size} to ${webp.size} bytes ` +
+                        `as WebP, uploading the original instead`,
+                    );
+                }
+            }
+
+            image.url = await this.uploadWithCache(display, fullPath, "display", this.imageUploader);
+
+            if (converted && webpSetting.keepOriginal) {
+                try {
+                    await this.uploadWithCache(original, fullPath, "source", this.originalUploader());
+                } catch (e) {
+                    // The archival copy is a convenience. Failing the publish
+                    // over it would lose the WebP upload that already succeeded.
+                    console.error(`Image upload toolkit: failed to archive the original of ${image.path}`, e);
+                    new Notice(i18n().notice.originalUploadFailed(image.path, errorMessage(e)), 8000);
+                }
+            }
+
+            this.progressModal?.updateProgress(image.name, true);
+            return image;
+        } catch (e) {
+            this.progressModal?.updateProgress(image.name, false);
+            const errorMessageText = i18n().notice.uploadFailed(image.path, errorMessage(e));
+            new Notice(errorMessageText, 10000);
+            throw new Error(errorMessageText);
+        }
+    }
+
+    /**
+     * Upload `file`, or return the URL a previous run produced for the same
+     * bytes at the same destination. `variant` separates the displayed image
+     * from the archived original, which can hold identical bytes but land at
+     * different paths.
+     */
+    private async uploadWithCache(
+        file: File,
+        fullPath: string,
+        variant: "display" | "source",
+        uploader: ImageUploader,
+    ): Promise<string> {
+        if (!this.cache) {
+            return uploader.upload(file, fullPath);
+        }
+        const key = cacheKey(this.destination, variant, await sha256(await file.arrayBuffer()));
+        const cached = this.cache.get(key);
+        if (cached) {
+            console.debug(`Image upload toolkit: reusing ${cached} for ${file.name}`);
+            return cached;
+        }
+        const url = await uploader.upload(file, fullPath);
+        this.cache.set(key, url, Date.now());
+        return url;
+    }
+
+    /**
+     * Uploader for the preserved originals. Stores without a path template
+     * cannot separate the two, so they reuse the main uploader: the originals
+     * land beside the WebP files, distinguished only by their extension.
+     */
+    private originalUploader(): ImageUploader {
+        if (!storeSupportsPath(this.settings.imageStore)) {
+            return this.imageUploader;
+        }
+        if (!this.originalUploaderInstance) {
+            this.originalUploaderInstance = buildUploader(
+                withPathTemplate(this.settings, this.settings.webpSetting.originalPath),
+            );
+        }
+        return this.originalUploaderInstance;
+    }
+
+    /** Whether the active note opts in to WebP conversion. */
+    private noteAllowsWebp(): boolean {
+        const webpSetting = this.settings.webpSetting;
+        if (!webpSetting?.enabled) return false;
+        const file = this.app.workspace.getActiveFile();
+        const frontmatter = file ? this.app.metadataCache.getFileCache(file)?.frontmatter : undefined;
+        return resolveNoteOptIn(frontmatter, webpSetting.frontmatterProperty, webpSetting.frontmatterDefault);
     }
 
     private getImageLists(value: string, mermaidUrls: Set<string> = new Set()): Image[] {
