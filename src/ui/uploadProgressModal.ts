@@ -183,13 +183,14 @@ export default class UploadProgressModal extends Modal {
             cls: "size-compare-saved-label",
         });
 
-        // The track is the original size. Its left part, in a neutral tone, is
-        // what still gets uploaded; the green remainder is what was saved.
-        // Colouring the uploaded part green would read as "more green is
-        // better" while meaning the opposite.
+        // The track is the original size; the green segment at its right end is
+        // what was saved, so green grows as compression improves. Drawing it
+        // this way round — rather than covering a green track with a neutral
+        // overlay — keeps the bar correct whatever opacity the theme gives its
+        // border colours.
         const track = this.bodyEl.createDiv({cls: "size-compare-track"});
-        const ratio = Math.max(0, Math.min(1, this.convertedToBytes / this.convertedFromBytes));
-        track.createDiv({cls: "size-compare-fill"}).style.width = `${ratio * 100}%`;
+        const savedRatio = Math.max(0, Math.min(1, saved / this.convertedFromBytes));
+        track.createDiv({cls: "size-compare-saved-fill"}).style.width = `${savedRatio * 100}%`;
 
         this.bodyEl.createDiv({
             cls: "size-compare-origin",
@@ -374,7 +375,9 @@ export default class UploadProgressModal extends Modal {
      * should not have them yanked away.
      */
     private startAutoClose(): void {
-        const bar = this.contentEl.createDiv({cls: "auto-close-bar"});
+        const bar = this.contentEl
+            .createDiv({cls: "auto-close-track"})
+            .createDiv({cls: "auto-close-bar"});
         this.autoCloseBarEl = bar;
         // The widths live in CSS classes and the duration in a custom property,
         // so the countdown stays themeable and nothing is written to .style.

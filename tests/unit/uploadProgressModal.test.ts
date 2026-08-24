@@ -209,16 +209,29 @@ describe("UploadProgressModal", () => {
             expect(body).toContain("Original 3.9 KB (-75%)");
         });
 
-        // The neutral fill covers what still gets uploaded, so the green left
-        // showing is the saving. Filling green would mean the reverse.
-        it("fills only the part that still gets uploaded", () => {
+        // Green is the saving, so it must be sized to what was saved, not to
+        // what is still uploaded. Getting this backwards inverts the meaning.
+        it("sizes the green segment to the saving, not the upload", () => {
             const modal = make(MODES_ON);
             modal.initialize([{name: "a.png"}, {name: "b.png"}]);
             modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 250, converted: true});
             modal.updateProgress("b.png", true, {originalSize: 3000, uploadedSize: 750, converted: true});
 
-            const fill = modal.modalEl.querySelector<HTMLElement>(".size-compare-fill");
-            expect(fill?.style.width).toBe("25%");
+            const fill = modal.modalEl.querySelector<HTMLElement>(".size-compare-saved-fill");
+            expect(fill?.style.width).toBe("75%");
+        });
+
+        // An overlay would be tinted by the translucent border colours several
+        // themes use, so the green has to be its own element.
+        it("draws the green as a child of the track, not as a background", () => {
+            const modal = make(MODES_ON);
+            modal.initialize([{name: "a.png"}, {name: "b.png"}]);
+            modal.updateProgress("a.png", true, {originalSize: 1000, uploadedSize: 900, converted: true});
+            modal.updateProgress("b.png", true, {originalSize: 1000, uploadedSize: 900, converted: true});
+
+            const track = modal.modalEl.querySelector(".size-compare-track");
+            expect(track?.querySelector(".size-compare-saved-fill")).not.toBeNull();
+            expect(modal.modalEl.querySelector(".size-compare-fill")).toBeNull();
         });
 
         it("is omitted when nothing was converted", () => {

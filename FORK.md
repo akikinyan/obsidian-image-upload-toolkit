@@ -184,10 +184,17 @@ layouts rather than one that goes stale, because "how much longer" and "what did
 it save" are different questions. Each converted row carries a miniature of the
 same bar, so a long list shows at a glance which files actually compressed.
 
-The comparison bar's track is the original size and is painted green; a neutral
-fill covers the part that still gets uploaded, leaving the saved portion
-showing. Filling the uploaded part with green instead reads as "more green is
-better" while meaning the exact opposite.
+The comparison bar's track is the original size, and the green segment at its
+right end is what was saved, so green grows as compression improves. Filling the
+uploaded part with green instead reads as "more green is better" while meaning
+the exact opposite.
+
+The green is a child element rather than a track colour showing through a
+neutral overlay. The overlay version looked right in theory and failed in the
+app: Obsidian's border colours are translucent in several themes, so the
+"neutral" fill tinted the green instead of covering it and the bar read as
+almost entirely green regardless of the ratio. Drawing the segment directly
+removes the dependency on a variable's opacity.
 
 The settings in effect are chips in the header rather than a sentence, the boxed
 list and its "Images" heading are gone in favour of row separators, and long
