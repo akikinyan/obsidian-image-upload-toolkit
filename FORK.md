@@ -126,27 +126,33 @@ the SDK signs them correctly. Only the URL written into the note changes.
 
 ## Releasing
 
-Releases are cut locally. Bump `version` in `manifest.json` and `package.json`,
-add the version to `versions.json`, then:
+Actions has been enabled on this fork, so `release.yml` runs on a tag push and
+publishes the release itself. Bump `version` in `manifest.json` and
+`package.json`, add the version to `versions.json`, then:
+
+```bash
+git tag <version> && git push origin <version>
+gh run watch
+```
+
+The workflow lints, tests, builds, and attaches `dist/main.js`,
+`dist/manifest.json` and `src/styles.css` — the three files BRAT downloads.
+
+A fork's inherited workflows stay inert until the owner enables them once in the
+repository's Actions tab, and neither `gh workflow list` nor the Actions API
+reflects that gate: both reported `active` while pushing tag `1.7.0` produced
+zero runs. That is why `1.7.0` was published by hand. If runs ever stop
+appearing, check that gate first, and fall back to:
 
 ```bash
 npm install --legacy-peer-deps
 npm run lint && npm test && npm run build
-git tag <version> && git push origin <version>
 gh release create <version> --title <version> --notes-file notes.md \
   dist/main.js dist/manifest.json src/styles.css
 ```
 
-Those three files are what BRAT downloads, and the same set upstream's
-`release.yml` attaches.
-
-The inherited `release.yml` does **not** run here, despite `gh workflow list`
-and the Actions API both reporting it as `active`: a fork's inherited workflows
-stay inert until the owner enables them once in the repository's Actions tab.
-Pushing tag `1.7.0` produced zero workflow runs, which is how this was
-established. Enabling Actions in the web UI would make a tag push sufficient —
-until then, use the commands above. Note also that this token has no `workflow`
-scope, so the workflow files themselves cannot be pushed from the CLI.
+Note that this token has no `workflow` scope, so the workflow files themselves
+cannot be pushed from the CLI — edit them in the GitHub web UI if needed.
 
 On Windows with Node 24, `npm test` can fail with "Timeout waiting for worker to
 respond" — vitest workers timing out at startup, unrelated to this plugin
