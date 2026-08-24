@@ -374,7 +374,6 @@ const ja: Messages = {
         complete: "完了",
         failed: "失敗",
         completedWithErrors: (failed: number) => `エラーあり（${failed} 件失敗）`,
-        images: "画像",
         succeeded: (count: number) => `成功 ${count} 件`,
         failedCount: (count: number) => `失敗 ${count} 件`,
         modeWebp: (quality: number) => `WebP 変換 有効（品質 ${quality}）`,
@@ -383,8 +382,10 @@ const ja: Messages = {
         modeHistory: "アップロード履歴 有効",
         reused: "履歴から再利用",
         reusedCount: (count: number) => `履歴から ${count} 件`,
-        sizeConverted: (from: string, to: string, delta: string) => `${from} → ${to}（${delta}）`,
-        totalSize: (from: string, to: string, delta: string) => `変換分の合計 ${from} → ${to}（${delta}）`,
+        sizeConverted: (from: string, to: string) => `${from} → ${to}`,
+        compareOriginal: (size: string) => `元 ${size}`,
+        compareConverted: (size: string) => `変換後 ${size}`,
+        saved: (amount: string, delta: string) => `${amount} 削減（${delta}）`,
     },
 
     notice: {

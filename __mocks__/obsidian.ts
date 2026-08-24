@@ -43,6 +43,9 @@ function installDomExtensions(): void {
     while (this.firstChild) this.removeChild(this.firstChild);
     return this;
   };
+  proto.setCssProps = function (props: Record<string, string>) {
+    for (const [k, v] of Object.entries(props)) this.style.setProperty(k, v);
+  };
   (proto as any).__iutMockInstalled = true;
 }
 

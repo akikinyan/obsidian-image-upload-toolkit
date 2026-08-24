@@ -170,21 +170,39 @@ hit skip the conversion as well as the upload. The encoder quality is folded int
 the variant string, so lowering it re-converts rather than returning a URL
 encoded at the old setting.
 
-## What the progress modal reports
+## The progress modal
 
-The modal states what is in effect for the run — conversion with its quality,
-whether originals are kept, whether the history is on — and then, per image,
-either the size change (`1.2 MB → 340 KB (-72%)`), the plain size when nothing
-was converted, or `reused from history`. A total for the converted images
-follows the success/failure summary.
+The modal was four lines of centred text of differing widths, saying the same
+thing three ways: "Complete", "1/1 (100%)" and "1 succeeded" are one fact, and
+with a single image the per-row size repeated the total. It is now left aligned
+against one edge with tabular figures, and the redundant lines are gone.
 
-Two details are deliberate:
+**The progress bar becomes a size comparison when the run ends.** A bar reading
+100% carries no information; the same strip showing converted against original
+is the clearest statement of what the feature achieved. The two are separate
+layouts rather than one that goes stale, because "how much longer" and "what did
+it save" are different questions. Each converted row carries a miniature of the
+same bar, so a long list shows at a glance which files actually compressed.
+
+The settings in effect are chips in the header rather than a sentence, the boxed
+list and its "Images" heading are gone in favour of row separators, and long
+names ellipsize with the full name on the row's `title`.
+
+Three details are deliberate:
 
 - **A note that opted out reads as "skipped for this note", not as the feature
   being off.** Those two states are otherwise indistinguishable, which sends the
   reader to the settings tab to work out why nothing was converted.
 - **A reused image shows no size change.** Nothing was converted on that run, so
-  a percentage would be a number the plugin did not measure.
+  a percentage would be a number the plugin never measured.
+- **Auto-close runs 5s with a countdown bar, and pauses while the pointer is
+  over the modal.** Showing results and yanking them away after 3s work against
+  each other. The remaining time is frozen on pause rather than recomputed from
+  the deadline, which keeps sliding into the past while paused.
+
+The countdown's widths live in CSS classes and its duration in a custom
+property, because the plugin's lint rules reject static assignments to
+`element.style`.
 
 ## Fixed: spaces in object keys were not percent-encoded
 

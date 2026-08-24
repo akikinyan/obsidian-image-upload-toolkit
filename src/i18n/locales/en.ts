@@ -372,7 +372,6 @@ const en = {
         complete: "Complete",
         failed: "Failed",
         completedWithErrors: (failed: number) => `Completed with errors (${failed} failed)`,
-        images: "Images",
         succeeded: (count: number) => `${count} succeeded`,
         failedCount: (count: number) => `${count} failed`,
         modeWebp: (quality: number) => `WebP conversion on (quality ${quality})`,
@@ -382,8 +381,10 @@ const en = {
         modeHistory: "Upload history on",
         reused: "reused from history",
         reusedCount: (count: number) => `${count} from history`,
-        sizeConverted: (from: string, to: string, delta: string) => `${from} → ${to} (${delta})`,
-        totalSize: (from: string, to: string, delta: string) => `Converted: ${from} → ${to} (${delta})`,
+        sizeConverted: (from: string, to: string) => `${from} → ${to}`,
+        compareOriginal: (size: string) => `Original ${size}`,
+        compareConverted: (size: string) => `Converted ${size}`,
+        saved: (amount: string, delta: string) => `${amount} saved (${delta})`,
     },
 
     notice: {
