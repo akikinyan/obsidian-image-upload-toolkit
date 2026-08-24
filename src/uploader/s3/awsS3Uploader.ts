@@ -1,6 +1,7 @@
 import ImageUploader from "../imageUploader";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
+import {buildS3RequestHandler, type ProxySetting} from "../../net/proxy";
 
 export default class AwsS3Uploader implements ImageUploader {
   private readonly s3!: S3Client;
@@ -10,7 +11,7 @@ export default class AwsS3Uploader implements ImageUploader {
   private customDomainName: string;
 
 
-  constructor(setting: AwsS3Setting) {
+  constructor(setting: AwsS3Setting, proxy?: ProxySetting) {
     const region = UploaderUtils.trimCredential(setting.region);
     this.s3 = new S3Client({
       credentials: {
@@ -18,6 +19,7 @@ export default class AwsS3Uploader implements ImageUploader {
         secretAccessKey: UploaderUtils.trimCredential(setting.secretAccessKey),
       },
       region,
+      requestHandler: buildS3RequestHandler(`https://s3.${region}.amazonaws.com`, proxy),
     });
     this.bucket = UploaderUtils.trimCredential(setting.bucketName);
     this.region = region;

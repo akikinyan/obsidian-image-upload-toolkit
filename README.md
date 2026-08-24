@@ -2,6 +2,12 @@
 
 > Seamlessly upload and manage images for your Obsidian notes across multiple cloud platforms
 
+> **Fork notice** — this is [akikinyan's fork](https://github.com/akikinyan/obsidian-image-upload-toolkit) of
+> [addozhang/obsidian-image-upload-toolkit](https://github.com/addozhang/obsidian-image-upload-toolkit).
+> It adds HTTP proxy support for the S3-compatible uploaders and a Japanese UI.
+> Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat), not from the community plugin store.
+> See [FORK.md](FORK.md) for what differs and why.
+
 ## 📋 Table of Contents
 - [🚀 Quick Start](#-quick-start)
 - [✨ Features](#-features)

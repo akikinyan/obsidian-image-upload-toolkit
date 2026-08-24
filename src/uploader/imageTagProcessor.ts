@@ -7,6 +7,7 @@ import {WebImageDownloader} from "./webImageDownloader";
 import MermaidProcessor from "./mermaidProcessor";
 import ImageStore from "../imageStore";
 import {errorMessage} from "./errorUtils";
+import {i18n} from "../i18n";
 
 export const MD_REGEX = /!\[([^\]]*)\]\(([^)]*)\)/g;
 export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
@@ -142,7 +143,7 @@ export default class ImageTagProcessor {
                         if (this.progressModal) {
                             this.progressModal.updateProgress(image.name, false);
                         }
-                        const errorMessageText = `Upload web image ${image.path} failed: ${errorMessage(e)}`;
+                        const errorMessageText = i18n().notice.webImageUploadFailed(image.path, errorMessage(e));
                         new Notice(errorMessageText, 10000);
                         console.error('Web image upload error:', e);
                         throw new Error(errorMessageText);
@@ -153,7 +154,7 @@ export default class ImageTagProcessor {
             
             // Handle local images
             if (this.app.vault.getAbstractFileByPath(normalizePath(image.path)) == null) {
-                new Notice(`Can NOT locate ${image.name} with ${image.path}, please check image path or attachment option in plugin setting!`, 10000);
+                new Notice(i18n().notice.cannotLocate(image.name, image.path), 10000);
                 console.warn(`${normalizePath(image.path)} not exist`);
                 // Update the progress modal with the failure
                 if (this.progressModal) {
@@ -179,14 +180,14 @@ export default class ImageTagProcessor {
                             if (this.progressModal) {
                                 this.progressModal.updateProgress(image.name, false);
                             }
-                            const errorMessageText = `Upload ${image.path} failed, remote server returned an error: ${errorMessage(e)}`;
+                            const errorMessageText = i18n().notice.uploadFailed(image.path, errorMessage(e));
                             new Notice(errorMessageText, 10000);
                             reject(new Error(errorMessageText));
                         });
                 }));
             } catch (error) {
                 console.error(`Failed to read file: ${image.path}`, error);
-                new Notice(`Failed to read file: ${image.path}`, 5000);
+                new Notice(i18n().notice.readFileFailed(image.path), 5000);
             }
         }
 
@@ -249,7 +250,7 @@ export default class ImageTagProcessor {
         switch (action) {
             case ACTION_PUBLISH:
                 await navigator.clipboard.writeText(value);
-                new Notice("Copied to clipboard");
+                new Notice(i18n().notice.copiedToClipboard);
                 break;
             default:
                 throw new Error("invalid action!");

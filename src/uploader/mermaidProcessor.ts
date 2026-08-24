@@ -1,6 +1,7 @@
 import {loadMermaid, Notice} from "obsidian";
 import ImageUploader from "./imageUploader";
 import {errorMessage} from "./errorUtils";
+import {i18n} from "../i18n";
 
 interface MermaidInstance {
     initialize(config: { startOnLoad?: boolean; theme?: string }): void;
@@ -46,13 +47,13 @@ export default class MermaidProcessor {
         const matches = [...value.matchAll(MERMAID_REGEX)];
         if (matches.length === 0) return { value, generatedUrls };
 
-        new Notice(`Rendering ${matches.length} mermaid diagram(s)...`);
+        new Notice(i18n().notice.mermaidRendering(matches.length));
 
         let mermaid: MermaidInstance;
         try {
             mermaid = await this.ensureMermaid();
         } catch (e) {
-            const msg = `Mermaid initialization failed: ${errorMessage(e)}`;
+            const msg = i18n().notice.mermaidInitFailed(errorMessage(e));
             console.error(`MermaidProcessor: ${msg}`);
             new Notice(msg, 8000);
             return { value, generatedUrls };
@@ -72,7 +73,7 @@ export default class MermaidProcessor {
                 generatedUrls.add(url);
                 value = value.replace(match[0], `![mermaid](${url})`);
             } catch (e) {
-                const msg = `Failed to render mermaid block ${i + 1}: ${errorMessage(e)}`;
+                const msg = i18n().notice.mermaidBlockFailed(i + 1, errorMessage(e));
                 console.warn(`MermaidProcessor: ${msg}`);
                 new Notice(msg, 8000);
                 value = value.replace(match[0], `<!-- mermaid render failed: block ${i + 1} -->`);

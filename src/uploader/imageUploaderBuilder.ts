@@ -23,7 +23,7 @@ export default function buildUploader(settings: PublishSettings): ImageUploader 
         case ImageStore.ImageKit.id:
             return new ImagekitUploader(settings.imagekitSetting);
         case ImageStore.AWS_S3.id:
-            return new AwsS3Uploader(settings.awsS3Setting);
+            return new AwsS3Uploader(settings.awsS3Setting, settings.proxySetting);
         case ImageStore.TENCENTCLOUD_COS.id:
             return new CosUploader(settings.cosSetting);
         case ImageStore.QINIU_KUDO.id:
@@ -31,9 +31,9 @@ export default function buildUploader(settings: PublishSettings): ImageUploader 
         case ImageStore.GITHUB.id:
             return new GitHubUploader(settings.githubSetting);
         case ImageStore.CLOUDFLARE_R2.id:
-            return new R2Uploader(settings.r2Setting);
+            return new R2Uploader(settings.r2Setting, settings.proxySetting);
         case ImageStore.BACKBLAZE_B2.id:
-            return new B2Uploader(settings.b2Setting);
+            return new B2Uploader(settings.b2Setting, settings.proxySetting);
         default:
             throw new Error('should not reach here!');
     }

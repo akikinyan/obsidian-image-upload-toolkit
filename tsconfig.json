@@ -7,7 +7,14 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      // https-proxy-agent v9 publishes types only through an "exports" map, which
+      // the classic "node" module resolution cannot read. esbuild resolves it fine;
+      // this mapping is purely so tsc can find the declarations.
+      "https-proxy-agent": ["node_modules/https-proxy-agent/dist/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts", "types.d.ts"]
 }

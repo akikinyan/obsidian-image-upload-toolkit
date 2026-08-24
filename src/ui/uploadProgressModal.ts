@@ -1,4 +1,5 @@
 import {App, Modal, setIcon} from "obsidian";
+import {i18n} from "../i18n";
 
 interface NamedImage {
     name?: string;
@@ -21,7 +22,7 @@ export default class UploadProgressModal extends Modal {
 
     constructor(app: App) {
         super(app);
-        this.titleEl.setText("Uploading images");
+        this.titleEl.setText(i18n().modal.title);
     }
 
     onClose(): void {
@@ -64,7 +65,7 @@ export default class UploadProgressModal extends Modal {
         this.statusEl = progressSection.createDiv({cls: "status-indicator"});
         const statusIconContainer = this.statusEl.createSpan({cls: "status-icon"});
         setIcon(statusIconContainer, "upload-cloud");
-        this.statusEl.createSpan({text: "Uploading...", cls: "status-text"});
+        this.statusEl.createSpan({text: i18n().modal.uploading, cls: "status-text"});
         
         // Progress bar container
         const progressBarContainer = progressSection.createDiv({cls: "progress-bar-container"});
@@ -77,7 +78,7 @@ export default class UploadProgressModal extends Modal {
         // Image list (if we have image names)
         if (this.imageStatus.size > 0) {
             const imageListContainer = contentEl.createDiv({cls: "image-list-container"});
-            imageListContainer.createDiv({cls: "image-list-heading", text: "Images"});
+            imageListContainer.createDiv({cls: "image-list-heading", text: i18n().modal.images});
             this.imageListEl = imageListContainer.createDiv({cls: "image-list"});
             this.renderImageList();
         }
@@ -119,9 +120,10 @@ export default class UploadProgressModal extends Modal {
         if (this.completedImages >= this.totalImages) {
             this.statusEl.empty();
             const statusIconContainer = this.statusEl.createSpan({cls: "status-icon"});
+            const T = i18n();
             if (this.failureCount === 0) {
                 setIcon(statusIconContainer, "check");
-                this.statusEl.createSpan({text: "Complete", cls: "status-text"});
+                this.statusEl.createSpan({text: T.modal.complete, cls: "status-text"});
                 this.statusEl.classList.remove("has-failures");
                 // Auto-close after 3 seconds only on full success
                 this.autoCloseTimer = activeWindow.setTimeout(() => {
@@ -130,12 +132,12 @@ export default class UploadProgressModal extends Modal {
                 }, 3000);
             } else if (this.successCount === 0) {
                 setIcon(statusIconContainer, "x-circle");
-                this.statusEl.createSpan({text: "Failed", cls: "status-text"});
+                this.statusEl.createSpan({text: T.modal.failed, cls: "status-text"});
                 this.statusEl.classList.add("has-failures");
             } else {
                 setIcon(statusIconContainer, "alert-triangle");
                 this.statusEl.createSpan({
-                    text: `Completed with errors (${this.failureCount} failed)`,
+                    text: T.modal.completedWithErrors(this.failureCount),
                     cls: "status-text",
                 });
                 this.statusEl.classList.add("has-failures");
@@ -161,12 +163,13 @@ export default class UploadProgressModal extends Modal {
         }
         if (!this.summaryEl) return;
         this.summaryEl.empty();
+        const T = i18n();
         const okSpan = this.summaryEl.createSpan({cls: "summary-success"});
-        okSpan.setText(`${this.successCount} succeeded`);
+        okSpan.setText(T.modal.succeeded(this.successCount));
         if (this.failureCount > 0) {
             this.summaryEl.createSpan({text: " · ", cls: "summary-sep"});
             const failSpan = this.summaryEl.createSpan({cls: "summary-failed"});
-            failSpan.setText(`${this.failureCount} failed`);
+            failSpan.setText(T.modal.failedCount(this.failureCount));
         }
     }
 
