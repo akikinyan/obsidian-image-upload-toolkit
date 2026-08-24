@@ -126,8 +126,19 @@ the SDK signs them correctly. Only the URL written into the note changes.
 
 ## Releasing
 
-Upstream's `release.yml` builds and attaches release assets on a tag push.
-GitHub Actions is disabled by default on forks, so releases here are cut locally:
+Inherited `release.yml` builds and attaches the release assets on a tag push, and
+it is active on this fork, so a release is just:
+
+```bash
+# bump manifest.json, package.json and versions.json first
+git tag 1.7.0 && git push origin 1.7.0
+gh run watch
+```
+
+The workflow lints, tests, builds, and attaches `dist/main.js`,
+`dist/manifest.json` and `src/styles.css` — the same three files BRAT downloads.
+
+If the workflow is ever unavailable, the equivalent by hand:
 
 ```bash
 npm install --legacy-peer-deps
@@ -136,9 +147,8 @@ gh release create <version> --title <version> --notes "..." \
   dist/main.js dist/manifest.json src/styles.css
 ```
 
-Those are the same three assets the upstream workflow publishes, and the three
-BRAT downloads. Bump `version` in both `manifest.json` and `package.json`, and
-add the new version to `versions.json`.
+Note that this token has no `workflow` scope, so the workflow files themselves
+cannot be pushed from here — edit them in the GitHub web UI if needed.
 
 On Windows with Node 24, `npm test` can fail with "Timeout waiting for worker to
 respond" — vitest workers timing out at startup, unrelated to this plugin
