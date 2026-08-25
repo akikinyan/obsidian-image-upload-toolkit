@@ -372,7 +372,11 @@ npm run dev
 
 ## 📝 Changelog
 
-### v1.8.0 (Latest — this fork)
+### v1.8.1 (Latest — this fork)
+- 🐛 The AWS S3 uploader never set `Content-Type`, so objects were stored as `binary/octet-stream` and opening an image URL directly downloaded the file instead of displaying it. `<img>` tags sniff the bytes and render either way, which is why this went unnoticed
+- 🔧 Content-Type resolution is now shared by the S3, R2 and B2 uploaders. R2 previously emitted `image/jpg`, which is not a registered media type, and an unknown extension produced a fabricated `image/<ext>`; both now resolve properly, falling back to `application/octet-stream`
+
+### v1.8.0 (this fork)
 - ✨ WebP conversion for local images, off by default. Configurable extension list (`png, jpg, jpeg`), quality, and a per-note frontmatter override that works in both directions
 - ✨ Optionally archive the untouched original alongside the WebP, at its own path template
 - ✨ Upload history: images whose contents have not changed reuse their existing URL instead of being uploaded again. Stored in `upload-cache.json`, with a Clear button in the settings tab

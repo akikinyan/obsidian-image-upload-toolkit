@@ -3,15 +3,6 @@ import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
 import {buildS3RequestHandler, type ProxySetting} from "../../net/proxy";
 
-const EXTENSION_MIME_MAP: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  gif: "image/gif",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-};
-
 export default class B2Uploader implements ImageUploader {
   private readonly s3!: S3Client;
   private readonly bucket!: string;
@@ -41,13 +32,11 @@ export default class B2Uploader implements ImageUploader {
     const uint8Array = new Uint8Array(arrayBuffer);
     let path = UploaderUtils.generateName(this.pathTmpl, image.name);
     path = path.replace(/^\/+/, ''); // remove the /
-    const ext = image.name.split('.').pop()?.toLowerCase() ?? '';
-    const contentType = image.type || EXTENSION_MIME_MAP[ext] || `image/${ext}`;
     await this.s3.send(new PutObjectCommand({
       Bucket: this.bucket,
       Key: path,
       Body: uint8Array,
-      ContentType: contentType,
+      ContentType: UploaderUtils.resolveContentType(image),
     }));
     return UploaderUtils.customizeDomainName(path, this.customDomainName);
   }

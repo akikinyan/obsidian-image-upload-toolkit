@@ -1,4 +1,39 @@
+const EXTENSION_MIME_MAP: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    avif: "image/avif",
+    ico: "image/x-icon",
+    tif: "image/tiff",
+    tiff: "image/tiff",
+};
+
 export class UploaderUtils {
+    /**
+     * The Content-Type an upload should be stored under.
+     *
+     * Omitting it makes S3 fall back to binary/octet-stream, which sends a
+     * browser to a download prompt when the URL is opened directly. `<img>`
+     * tags sniff the bytes and render regardless, so the omission survives
+     * casual testing.
+     *
+     * The file's own type wins where it has one — the WebP converter sets it —
+     * and the extension decides otherwise, because files read out of the vault
+     * are constructed without a type. An unrecognised extension falls back to
+     * octet-stream rather than to a fabricated `image/<ext>`, which is not a
+     * registered media type and helps nobody.
+     */
+    static resolveContentType(file: File): string {
+        if (file.type) return file.type;
+        const dot = file.name.lastIndexOf(".");
+        const ext = dot < 0 ? "" : file.name.slice(dot + 1).toLowerCase();
+        return EXTENSION_MIME_MAP[ext] ?? "application/octet-stream";
+    }
+
     static generateName(pathTmpl: string | undefined, imageName: string): string {
         const date = new Date();
         const year = date.getFullYear().toString();

@@ -35,7 +35,7 @@ export default class R2Uploader implements ImageUploader {
       Bucket: this.bucket,
       Key: path,
       Body: uint8Array,
-      ContentType: `image/${image.name.split('.').pop()}`,
+      ContentType: UploaderUtils.resolveContentType(image),
     }));
     return UploaderUtils.customizeDomainName(path, this.customDomainName);
   }
