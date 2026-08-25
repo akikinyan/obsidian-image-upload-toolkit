@@ -36,6 +36,7 @@ export default class AwsS3Uploader implements ImageUploader {
       Bucket: this.bucket,
       Key: path,
       Body: uint8Array,
+      ContentType: UploaderUtils.resolveContentType(image),
     }));
     const location = `https://${this.bucket}.s3.${this.region}.amazonaws.com/${path}`;
     return UploaderUtils.customizeDomainName(location, this.customDomainName);

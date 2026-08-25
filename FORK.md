@@ -243,6 +243,30 @@ keys are unaffected.
 The uploaded object key itself is unchanged — S3 keys may contain spaces, and
 the SDK signs them correctly. Only the URL written into the note changes.
 
+## Fixed: S3 uploads carried no Content-Type
+
+`AwsS3Uploader` sent only `Bucket`, `Key` and `Body`, so S3 applied its default
+of `binary/octet-stream`. Opening an image URL directly downloaded the file
+instead of displaying it, and anything that trusts the header — link unfurls,
+feed readers, static site generators — saw a binary blob. `<img>` tags sniff the
+bytes and render regardless, which is why the omission survived: the images
+looked fine everywhere they were actually embedded.
+
+Resolution now lives in `UploaderUtils.resolveContentType` and is shared by the
+S3, R2 and B2 uploaders. It prefers the `File`'s own type (the WebP converter
+sets one) and falls back to an extension table, because files read out of the
+vault are constructed without a type.
+
+That fixed two smaller things on the way. R2 built its header as
+`image/${extension}`, which emits `image/jpg` for `.jpg` — not a registered
+media type. And both R2 and B2 fell back to a fabricated `image/<ext>` for
+anything unrecognised; the shared version returns `application/octet-stream`,
+which is at least true.
+
+Objects uploaded before this stay as they were. Re-uploading them means clearing
+the upload history first, or the type can be replaced in place with
+`aws s3 cp --metadata-directive REPLACE` without changing any URL.
+
 ## Other changes
 
 - `display()` in `publishSettingTab.ts` was declared `: unknown` but returned

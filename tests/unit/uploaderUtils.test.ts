@@ -168,6 +168,43 @@ describe("UploaderUtils.customizeDomainName", () => {
   });
 });
 
+describe("UploaderUtils.resolveContentType", () => {
+  const file = (name: string, type = "") => new File([new Uint8Array([1])], name, {type});
+
+  // Files read out of the vault are constructed without a type, so the
+  // extension is the only signal available for them.
+  it("maps the extensions the plugin accepts", () => {
+    expect(UploaderUtils.resolveContentType(file("a.png"))).toBe("image/png");
+    expect(UploaderUtils.resolveContentType(file("a.gif"))).toBe("image/gif");
+    expect(UploaderUtils.resolveContentType(file("a.svg"))).toBe("image/svg+xml");
+    expect(UploaderUtils.resolveContentType(file("a.webp"))).toBe("image/webp");
+  });
+
+  // "image/jpg" is not a registered media type; the R2 uploader used to emit it.
+  it("maps both jpeg spellings to image/jpeg", () => {
+    expect(UploaderUtils.resolveContentType(file("a.jpg"))).toBe("image/jpeg");
+    expect(UploaderUtils.resolveContentType(file("a.jpeg"))).toBe("image/jpeg");
+  });
+
+  it("ignores the case of the extension", () => {
+    expect(UploaderUtils.resolveContentType(file("Photo.PNG"))).toBe("image/png");
+  });
+
+  it("uses the last dot, so a dotted name does not confuse it", () => {
+    expect(UploaderUtils.resolveContentType(file("v1.2.photo.jpeg"))).toBe("image/jpeg");
+  });
+
+  // The WebP converter sets a type on the file it produces.
+  it("prefers the file's own type over the extension", () => {
+    expect(UploaderUtils.resolveContentType(file("a.png", "image/webp"))).toBe("image/webp");
+  });
+
+  it("falls back to octet-stream rather than inventing image/<ext>", () => {
+    expect(UploaderUtils.resolveContentType(file("a.excalidraw"))).toBe("application/octet-stream");
+    expect(UploaderUtils.resolveContentType(file("noextension"))).toBe("application/octet-stream");
+  });
+});
+
 describe("UploaderUtils.trimCredential", () => {
   it("strips trailing newline (the #58 footgun)", () => {
     expect(UploaderUtils.trimCredential("secret-key\n")).toBe("secret-key");
