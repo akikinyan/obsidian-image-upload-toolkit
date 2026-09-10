@@ -6,3 +6,4 @@ yarn.lock
 data.json
 dist
 .idea
+src/**/*.d.ts

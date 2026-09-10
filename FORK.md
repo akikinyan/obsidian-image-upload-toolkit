@@ -298,7 +298,44 @@ the upload history first, or the type can be replaced in place with
   resolution cannot read. esbuild resolves it correctly; the mapping is for
   `tsc` alone.
 - Repeated settings fields ("target path", "custom domain name", "bucket name")
-  are now rendered by shared helpers instead of being copy-pasted per backend.
+  are rendered by shared helpers instead of being copy-pasted per backend. They
+  live in `src/ui/settingFields.ts` as free functions, since each provider's
+  settings section now draws itself from its own module.
+- `src/**/*.d.ts` is ignored. `tsconfig.json` sets `emitDeclarationOnly`, so
+  running `npx tsc` as a typecheck scatters declaration files through `src/`
+  and they were showing up as untracked.
+
+## Provider descriptors
+
+The descriptor registry itself is upstream's (#91), ported here. What is worth
+knowing is where this fork's copy differs.
+
+`ProviderDescriptor` carries two optional fields upstream does not have. They
+are optional so a descriptor written against upstream's four-field shape stays
+valid here, which keeps future upstream provider changes mergeable:
+
+- `withPath(settings, path)` returns a copy of the settings pointing at a
+  different path template. WebP archiving needs it to send preserved originals
+  to a prefix of their own, and `storeSupportsPath()` is now the presence of
+  this field rather than a hand-maintained list of store ids.
+- `cacheKeyParts(settings)` returns what identifies the destination beyond the
+  store id, for the upload cache key. Credentials stay out of it because the
+  cache file is meant to be safe to sync, and the path template stays out
+  because URLs already handed out remain valid.
+
+Together these removed the last three per-provider switches this fork had added
+of its own, on top of the three the port removed.
+
+Each descriptor's `build` is also where the proxy reaches the three AWS-SDK
+uploaders. That used to be one switch handing `settings.proxySetting` to S3, R2
+and B2; it is now three call sites among ten files, and omitting it does not
+fail anything visibly — the uploader just stops using the proxy, which shows up
+only on a machine behind one. `tests/unit/providerProxyInjection.test.ts` pins
+it, and was checked against a deliberately broken descriptor.
+
+The settings tab kept its own sections (general, upload, mermaid, network, WebP,
+upload history, and the store dropdown), so it stays around 380 lines where
+upstream's fell to 150.
 
 ## Releasing
 

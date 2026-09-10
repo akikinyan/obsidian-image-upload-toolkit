@@ -20,20 +20,24 @@ This is a TypeScript-based Obsidian plugin that processes markdown documents, de
 ```
 src/
 ├── publish.ts                      # Main plugin entry point
-├── imageStore.ts                   # Storage provider registry (with normalizeId() for legacy alias support)
+├── imageStore.ts                   # ImageStore ids + legacy alias normalization (see providers/registry.ts)
+├── providers/                      # Provider descriptor registry (single registration point)
+│   ├── types.ts                    # ProviderDescriptor interface
+│   └── registry.ts                 # PROVIDERS list + lookups + load-time completeness check
 ├── styles.css                      # Plugin styles
 ├── ui/
-│   ├── publishSettingTab.ts        # Settings UI
+│   ├── publishSettingTab.ts        # Settings UI (general/upload/mermaid/network/webp/cache + store dropdown)
+│   ├── settingFields.ts            # Setting fields shared by several providers
 │   └── uploadProgressModal.ts      # Progress display modal
 └── uploader/
     ├── imageUploader.ts            # Base uploader interface
-    ├── imageUploaderBuilder.ts     # Factory for uploader instances
+    ├── imageUploaderBuilder.ts     # Registry-backed factory + path/cache-key queries
     ├── imageTagProcessor.ts        # Markdown image parser & processor
     ├── mermaidProcessor.ts         # Mermaid-to-PNG conversion (v1.3.0)
     ├── webImageDownloader.ts       # Web image download utility (v1.2.0)
     ├── uploaderUtils.ts            # Shared utilities
     ├── apiError.ts                 # Error handling
-    ├── imgur/                      # Imgur implementation
+    ├── imgur/                      # Imgur implementation (each dir: uploader + provider.ts descriptor)
     ├── gyazo/                      # Gyazo implementation (v1.6.0)
     ├── github/                     # GitHub implementation
     ├── s3/                         # AWS S3 implementation
@@ -70,7 +74,14 @@ interface ImageUploader {
 }
 ```
 
-New providers are registered in [`ImageStore`](src/imageStore.ts) and instantiated via [`buildUploader()`](src/uploader/imageUploaderBuilder.ts).
+Each provider also ships a descriptor (`src/uploader/<provider>/provider.ts`) bundling its `ImageStore` entry, uploader construction (`build`), hosted-URL detection (`isHosted`) and settings-UI section (`drawSettings`). Descriptors are registered in the single list at [`src/providers/registry.ts`](src/providers/registry.ts), which validates at load time that every `ImageStore` entry has exactly one descriptor; [`buildUploader()`](src/uploader/imageUploaderBuilder.ts) and `isAlreadyHosted()` are thin lookups over it.
+
+Two descriptor fields are this fork's own and optional, so a descriptor written against upstream's four-field shape stays valid here:
+
+- `withPath(settings, path)` returns a copy of the settings pointing at a different path template. The six object stores that expose one provide it; `storeSupportsPath()` is the presence of this field rather than a list of ids to keep in sync. WebP archiving uses it to send preserved originals to their own prefix.
+- `cacheKeyParts(settings)` returns what identifies the destination beyond the store id, for the upload cache key. Credentials are excluded, since the cache file is meant to be safe to sync, and so is the path template, because URLs already handed out stay valid.
+
+`build` is also where the proxy reaches the three AWS-SDK uploaders (S3, R2, B2), as `settings.proxySetting`. Omitting it there is silent: the uploader simply bypasses the proxy, which only shows up on a machine behind one, so `tests/unit/providerProxyInjection.test.ts` pins it.
 
 ### Image Processing Flow
 
@@ -153,17 +164,36 @@ To add a new storage provider:
    }
    ```
 
-3. **Register in ImageStore** ([`src/imageStore.ts`](src/imageStore.ts)):
+3. **Add the provider descriptor** (`src/uploader/your-provider/provider.ts`):
    ```typescript
-   static YOUR_PROVIDER = {id: "your-provider", description: "Your Provider"};
-   static lists = [/* ... */, ImageStore.YOUR_PROVIDER];
+   import {Setting} from "obsidian";
+   import type ObsidianPublish from "../../publish";
+   import ImageStore from "../../imageStore";
+   import type {ProviderDescriptor} from "../../providers/types";
+   import {i18n} from "../../i18n";
+   import YourProviderUploader from "./yourProviderUploader";
+
+   function drawSettings(parentEl: HTMLElement, plugin: ObsidianPublish): void {
+       const t = i18n();
+       new Setting(parentEl)
+           .setName(t.yourProvider.apiKey.name)
+           .addText(text => text
+               .setPlaceholder(t.yourProvider.apiKey.placeholder)
+               .setValue(plugin.settings.yourProviderSetting.apiKey)
+               .onChange(value => plugin.settings.yourProviderSetting.apiKey = value));
+   }
+
+   export const YOUR_PROVIDER_DESCRIPTOR: ProviderDescriptor = {
+       store: ImageStore.YOUR_PROVIDER,
+       build: settings => new YourProviderUploader(settings.yourProviderSetting),
+       isHosted: url => new URL(url).hostname.endsWith("your-provider.example.com"),
+       drawSettings,
+   };
    ```
 
-4. **Add to builder** ([`src/uploader/imageUploaderBuilder.ts`](src/uploader/imageUploaderBuilder.ts)):
-   ```typescript
-   case ImageStore.YOUR_PROVIDER.id:
-       return new YourProviderUploader(settings.yourProviderSetting);
-   ```
+   Use [`src/ui/settingFields.ts`](src/ui/settingFields.ts) for the target path, bucket name and custom domain fields instead of repeating them, and add `withPath`/`cacheKeyParts` if the store has a path template or a bucket-like identity. Every string comes from [`src/i18n/locales/`](src/i18n/locales/), in both `en.ts` and `ja.ts`.
+
+4. **Register the ImageStore entry** ([`src/imageStore.ts`](src/imageStore.ts)) - add the constant and any legacy aliases. The registry's load-time check fails fast if the descriptor is missing.
 
 5. **Update settings interface** ([`src/publish.ts`](src/publish.ts)):
    ```typescript
@@ -172,10 +202,9 @@ To add a new storage provider:
        yourProviderSetting: YourProviderSetting;
    }
    ```
+   and add its defaults to `DEFAULT_SETTINGS` (the deep merge keeps older data.json files compatible).
 
-6. **Add UI settings** ([`src/ui/publishSettingTab.ts`](src/ui/publishSettingTab.ts)):
-   - Create `drawYourProviderSetting(parentEL)` method
-   - Add case to `drawImageStoreSettings()` switch
+6. **Register the descriptor** ([`src/providers/registry.ts`](src/providers/registry.ts)) - append `YOUR_PROVIDER_DESCRIPTOR` to `PROVIDERS`. That is the only registration list; the builder, the hosted-URL check and the settings-UI dispatch are all lookups over it.
 
 ## Testing
 
@@ -387,7 +416,9 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 ### Careful With
 - [`src/publish.ts`](src/publish.ts) - Core plugin logic, changes affect all providers
 - [`src/uploader/imageTagProcessor.ts`](src/uploader/imageTagProcessor.ts) - Image parsing, affects all workflows
-- [`src/imageStore.ts`](src/imageStore.ts) - Provider registry, maintain backward compatibility
+- [`src/imageStore.ts`](src/imageStore.ts) - Store ids, maintain backward compatibility
+- [`src/providers/registry.ts`](src/providers/registry.ts) - The one registration list; a missing descriptor throws at load
+- [`src/ui/settingFields.ts`](src/ui/settingFields.ts) - Shared setting fields, changes affect several providers
 
 ### Safe to Modify
 - Individual provider implementations in `src/uploader/*/`
@@ -404,4 +435,4 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 
 ## Current Version
 
-1.6.2 — Refactored all SDK-heavy uploaders (OSS, COS, Qiniu, S3, R2, B2) to use Obsidian's `requestUrl` API with inline signing; migrated AWS-family uploaders to `@aws-sdk/client-s3` v3; reduced bundle size from ~16 MB to ~644 KB; fixed Imgur anonymous upload payload encoding; fixed COS upload regression caused by explicit `Host` header rejection in Electron's `requestUrl`.
+10.0.0 - Fork releases moved to their own major lane (see [FORK.md](FORK.md#versioning)). Provider descriptor registry ported from upstream: each provider ships one descriptor (uploader construction, hosted-URL detection, settings UI, plus this fork's `withPath`/`cacheKeyParts`) registered in a single list with load-time validation, collapsing six per-provider switches into one. Backported upstream's 1.6.8-1.8.0 fixes: the GitHub path template, link path segments leaking into remote object keys, unusable B2 and Kodo URLs, path templates without `{filename}` collapsing every upload onto one key, and the shallow settings merge. B2 gained the hosted-URL detection it never had, and S3 detection no longer claims unrelated hosts that merely contain "s3".
