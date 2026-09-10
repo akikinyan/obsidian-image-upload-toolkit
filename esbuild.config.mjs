@@ -4,6 +4,12 @@ import {copyFile, mkdir} from "node:fs/promises";
 const prod = process.argv.includes("--prod") || process.env.NODE_ENV === "production";
 const watch = process.argv.includes("--watch");
 
+// A production build is what the release workflow runs, so this is where a
+// version that disagrees with its tag has to fail. Dev builds skip it.
+if (prod) {
+  await import("./scripts/check-version.mjs");
+}
+
 const context = await esbuild.context({
   entryPoints: ["src/publish.ts"],
   bundle: true,

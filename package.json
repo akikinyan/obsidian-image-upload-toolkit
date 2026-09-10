@@ -1,12 +1,13 @@
 {
   "name": "obsidian-image-upload-toolkit",
-  "version": "1.8.1",
+  "version": "10.0.0",
   "description": "",
   "author": "addozhang",
   "main": "main.js",
   "license": "MIT",
   "scripts": {
     "build": "node esbuild.config.mjs --prod",
+    "check:version": "node scripts/check-version.mjs",
     "dev": "node esbuild.config.mjs --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

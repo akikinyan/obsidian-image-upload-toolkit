@@ -372,7 +372,11 @@ npm run dev
 
 ## 📝 Changelog
 
-### v1.8.1 (Latest — this fork)
+### v10.0.0 (unreleased — this fork)
+- 🔖 Fork releases move to their own major lane. The plugin `id` is shared with upstream, so the fork's version has to outrank the community-store version or Obsidian offers the store build as an "update"; starting one minor above upstream stopped working when upstream shipped two minors in one week. See [FORK.md](FORK.md) for the reasoning
+- 🔧 `manifest.json`, `package.json`, `versions.json` and the release tag are now checked against each other by the production build, so a tag pushed without the matching bump fails before the release is created
+
+### v1.8.1 (this fork)
 - 🐛 The AWS S3 uploader never set `Content-Type`, so objects were stored as `binary/octet-stream` and opening an image URL directly downloaded the file instead of displaying it. `<img>` tags sniff the bytes and render either way, which is why this went unnoticed
 - 🔧 Content-Type resolution is now shared by the S3, R2 and B2 uploaders. R2 previously emitted `image/jpg`, which is not a registered media type, and an unknown extension produced a fabricated `image/<ext>`; both now resolve properly, falling back to `application/octet-stream`
 

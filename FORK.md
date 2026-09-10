@@ -8,8 +8,29 @@ Install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) — "Add beta 
 (`image-upload-toolkit`), so BRAT overwrites the community-store installation in
 place and your existing `data.json` settings carry over.
 
-Versions start at **1.7.0** so they sort above upstream's latest release and
-Obsidian does not offer the store version as an "update".
+## Versioning
+
+Because the plugin `id` is shared with upstream, Obsidian compares this fork's
+`manifest.json` version against the community-store version and offers the store
+build as an "update" whenever the store number is higher. The fork's version
+therefore has to stay above upstream's, permanently.
+
+The first releases (`1.7.0`, `1.8.0`, `1.8.1`) tried to buy that headroom by
+starting one minor above upstream's latest. It lasted two weeks: upstream shipped
+`1.7.0` and `1.8.0` in the same week of September 2026, and the fork was left a
+single patch ahead of a repository that moves faster than it does.
+
+**Releases from `10.0.0` onwards use their own major lane.** The number is the
+fork's alone and is incremented independently of upstream — a fork release is
+never "upstream 1.9 plus changes", so mirroring upstream's minor was always
+describing a relationship that does not exist. Ten leaves upstream room to reach
+2.x or 3.x without the question coming back.
+
+Tags in this repository share one namespace with upstream's, since the fork
+inherited `1.0.0`–`1.6.7` and `git fetch upstream --tags` brings in more. Never
+run `git push --tags`: `release.yml` fires on `tags: ["*"]`, so pushing an
+upstream tag would publish a fork release built from upstream's tree. Push the
+one tag you mean, by name.
 
 ## Proxy support
 
@@ -286,12 +307,27 @@ publishes the release itself. Bump `version` in `manifest.json` and
 `package.json`, add the version to `versions.json`, then:
 
 ```bash
+npm run check:version
 git tag <version> && git push origin <version>
 gh run watch
 ```
 
 The workflow lints, tests, builds, and attaches `dist/main.js`,
 `dist/manifest.json` and `src/styles.css` — the three files BRAT downloads.
+
+`npm run check:version` is the same guard the build runs, so the local call is
+only to hear about a mismatch before the tag exists rather than after. It
+compares `manifest.json`, `package.json` and `versions.json` against each other,
+and — when a tag push is what is building — against the tag as well. Nothing
+else does: the release is named after the tag while Obsidian reads the version
+out of the attached manifest, so a tag pushed without the matching bump yields a
+release whose assets advertise the previous version, and Obsidian keeps offering
+an update it has already installed.
+
+The guard runs from `esbuild.config.mjs` on a production build rather than from
+the workflow, because the token described below has no `workflow` scope and
+`npm run build` is already the workflow's own build step. A failure there aborts
+the run before `gh release create`.
 
 A fork's inherited workflows stay inert until the owner enables them once in the
 repository's Actions tab, and neither `gh workflow list` nor the Actions API
