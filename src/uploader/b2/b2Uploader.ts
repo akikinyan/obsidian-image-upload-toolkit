@@ -6,11 +6,13 @@ import {buildS3RequestHandler, type ProxySetting} from "../../net/proxy";
 export default class B2Uploader implements ImageUploader {
   private readonly s3!: S3Client;
   private readonly bucket!: string;
+  private readonly region: string;
   private pathTmpl: string;
   private customDomainName: string;
 
   constructor(setting: B2Setting, proxy?: ProxySetting) {
     const region = UploaderUtils.trimCredential(setting.region);
+    this.region = region;
     const endpoint = `https://s3.${region}.backblazeb2.com`;
     this.s3 = new S3Client({
       credentials: {
@@ -38,7 +40,8 @@ export default class B2Uploader implements ImageUploader {
       Body: uint8Array,
       ContentType: UploaderUtils.resolveContentType(image),
     }));
-    return UploaderUtils.customizeDomainName(path, this.customDomainName);
+    const url = `https://${this.bucket}.s3.${this.region}.backblazeb2.com/${path}`;
+    return UploaderUtils.customizeDomainName(url, this.customDomainName);
   }
 }
 

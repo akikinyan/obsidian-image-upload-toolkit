@@ -735,6 +735,10 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.githubSetting.token)
                     .onChange(value => this.plugin.settings.githubSetting.token = value)
             );
+
+        this.drawTargetPath(parentEL,
+            () => this.plugin.settings.githubSetting.path,
+            value => this.plugin.settings.githubSetting.path = value)
     }
 
     private drawR2Setting(parentEL: HTMLDivElement) {

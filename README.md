@@ -373,6 +373,12 @@ npm run dev
 ## 📝 Changelog
 
 ### v10.0.0 (unreleased — this fork)
+Bug fixes backported from upstream 1.6.8 – 1.8.0. The provider-descriptor refactor those releases also carried is not included.
+- 🐛 The GitHub uploader ignored Target Path — every image was committed to the repository root — and the setting was not even rendered, so there was nothing to notice. Raw URLs are now percent-encoded too, which filenames with spaces need (upstream #88)
+- 🐛 The directory part of a link leaked into the remote object key, so the `../` segments Obsidian emits for relative links broke pre-signed keys: the HTTP layer normalizes them away before the request leaves Electron, and Tencent COS then answered `SignatureDoesNotMatch` because it signed the collapsed path (upstream #89, by kba977)
+- 🐛 Backblaze B2 returned a relative path instead of a URL when no custom domain was set, and Qiniu Kodo joined the domain and key without a scheme, which is what a domain entered without `https://` produces. Both broke the image link
+- 🐛 A Target Path without `{filename}` — such as `images` or `images/{year}` — collapsed every upload onto one remote key, each upload overwriting the last. Affected OSS, COS, Kodo, S3, R2 and B2
+- 🐛 Settings were merged shallowly, so a `data.json` written by an older version replaced a whole provider block and every field added since came back `undefined` instead of falling back to its default. Prototype-polluting keys in `data.json` are now dropped
 - 🔖 Fork releases move to their own major lane. The plugin `id` is shared with upstream, so the fork's version has to outrank the community-store version or Obsidian offers the store build as an "update"; starting one minor above upstream stopped working when upstream shipped two minors in one week. See [FORK.md](FORK.md) for the reasoning
 - 🔧 `manifest.json`, `package.json`, `versions.json` and the release tag are now checked against each other by the production build, so a tag pushed without the matching bump fails before the release is created
 
