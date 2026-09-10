@@ -324,10 +324,10 @@ out of the attached manifest, so a tag pushed without the matching bump yields a
 release whose assets advertise the previous version, and Obsidian keeps offering
 an update it has already installed.
 
-The guard runs from `esbuild.config.mjs` on a production build rather than from
-the workflow, because the token described below has no `workflow` scope and
-`npm run build` is already the workflow's own build step. A failure there aborts
-the run before `gh release create`.
+The guard runs from `esbuild.config.mjs` on a production build rather than as a
+step of its own, because `npm run build` is already the workflow's build step
+and putting it there covers local production builds too. A failure aborts the
+run before `gh release create`, so a mismatched tag never yields a release.
 
 A fork's inherited workflows stay inert until the owner enables them once in the
 repository's Actions tab, and neither `gh workflow list` nor the Actions API
@@ -342,14 +342,23 @@ gh release create <version> --title <version> --notes-file notes.md \
   dist/main.js dist/manifest.json src/styles.css
 ```
 
-Note that this token has no `workflow` scope, so the workflow files themselves
-cannot be pushed from the CLI — edit them in the GitHub web UI if needed.
+`.github/workflows/` can be pushed from the CLI: the token carries the
+`workflow` scope. It did not always — an earlier revision of these notes said
+the files had to be edited in the GitHub web UI — so if a push is ever rejected
+for that reason, check `gh auth status` before believing the workaround.
+
+The step ordering in `release.yml` is load-bearing. Lint, test, build and
+attestation all run before `gh release create`, so anything that fails takes the
+whole run down without publishing a release. That is what makes it safe to
+discover a `release.yml` problem at release time: there is no half-created
+release to clean up, and pushing the same tag again after a fix re-runs it.
 
 On Windows with Node 24, `npm test` can fail with "Timeout waiting for worker to
 respond" — vitest workers timing out at startup, unrelated to this plugin
 (jsdom environment setup alone accounts for most of the runtime, so a slow
-filesystem or an on-access virus scanner is the likely cause). This invocation is
-reliable:
+filesystem or an on-access virus scanner is the likely cause). It is specific to
+Windows: CI runs the same suite on Node 24 under `ubuntu-latest` without it.
+This invocation is reliable:
 
 ```bash
 npx vitest run --pool=threads --no-file-parallelism
