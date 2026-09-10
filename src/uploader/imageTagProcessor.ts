@@ -480,7 +480,7 @@ export default class ImageTagProcessor {
         // `name` must stay a bare filename: it is what feeds the {filename} path
         // variable, so any directory part of the link text (notably the `../`
         // segments Obsidian emits for relative links) would leak into the remote
-        // object key. See resolveImagePath callers and PathTemplateUtils.
+        // object key. See resolveImagePath callers and UploaderUtils.generateName.
         if (targetFile) {
             return {resolvedPath: targetFile.path, name: targetFile.name};
         }
