@@ -63,5 +63,7 @@ export const AWS_S3_PROVIDER: ProviderDescriptor = {
         // contains ".s3." is not ours
         return hostname.endsWith(".amazonaws.com");
     },
+    withPath: (settings, path) => ({...settings, awsS3Setting: {...settings.awsS3Setting, path}}),
+    cacheKeyParts: settings => [settings.awsS3Setting?.bucketName, settings.awsS3Setting?.region, settings.awsS3Setting?.customDomainName],
     drawSettings,
 };

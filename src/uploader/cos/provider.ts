@@ -59,5 +59,7 @@ export const COS_PROVIDER: ProviderDescriptor = {
         }
         return hostname.includes("myqcloud.com");
     },
+    withPath: (settings, path) => ({...settings, cosSetting: {...settings.cosSetting, path}}),
+    cacheKeyParts: settings => [settings.cosSetting?.bucket, settings.cosSetting?.region, settings.cosSetting?.customDomainName],
     drawSettings,
 };

@@ -43,5 +43,7 @@ export const KODO_PROVIDER: ProviderDescriptor = {
         }
         return hostname.includes("qiniudn.com") || hostname.includes("clouddn.com");
     },
+    withPath: (settings, path) => ({...settings, kodoSetting: {...settings.kodoSetting, path}}),
+    cacheKeyParts: settings => [settings.kodoSetting?.bucket, settings.kodoSetting?.customDomainName],
     drawSettings,
 };

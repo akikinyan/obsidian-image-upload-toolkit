@@ -50,5 +50,6 @@ export const IMAGEKIT_PROVIDER: ProviderDescriptor = {
     store: ImageStore.ImageKit,
     build: settings => new ImagekitUploader(settings.imagekitSetting),
     isHosted: url => new URL(url).hostname.includes("imagekit.io"),
+    cacheKeyParts: settings => [settings.imagekitSetting?.imagekitID, settings.imagekitSetting?.folder],
     drawSettings,
 };

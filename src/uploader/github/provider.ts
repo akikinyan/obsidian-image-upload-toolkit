@@ -57,5 +57,6 @@ export const GITHUB_PROVIDER: ProviderDescriptor = {
         }
         return isGitHubHost;
     },
+    cacheKeyParts: settings => [settings.githubSetting?.repositoryName, settings.githubSetting?.branchName],
     drawSettings,
 };

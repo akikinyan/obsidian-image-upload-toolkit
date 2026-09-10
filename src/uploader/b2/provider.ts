@@ -65,5 +65,7 @@ export const BACKBLAZE_B2_PROVIDER: ProviderDescriptor = {
         }
         return hostname.includes("backblazeb2.com");
     },
+    withPath: (settings, path) => ({...settings, b2Setting: {...settings.b2Setting, path}}),
+    cacheKeyParts: settings => [settings.b2Setting?.bucketName, settings.b2Setting?.region, settings.b2Setting?.customDomainName],
     drawSettings,
 };
