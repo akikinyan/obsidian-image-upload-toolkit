@@ -115,7 +115,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         repositoryName: "",
         branchName: "main",
         token: "",
-        path: "images"
+        path: ""
     },
     r2Setting: {
         accessKeyId: "",
