@@ -1,16 +1,7 @@
 import {PublishSettings} from "../publish";
 import ImageUploader from "./imageUploader";
 import ImageStore from "../imageStore";
-import ImgurAnonymousUploader from "./imgur/imgurAnonymousUploader";
-import GyazoUploader from "./gyazo/gyazoUploader";
-import OssUploader from "./oss/ossUploader";
-import ImagekitUploader from "./imagekit/imagekitUploader";
-import AwsS3Uploader from "./s3/awsS3Uploader";
-import CosUploader from "./cos/cosUploader";
-import KodoUploader from "./qiniu/kodoUploader";
-import GitHubUploader from "./github/gitHubUploader";
-import R2Uploader from "./r2/r2Uploader";
-import B2Uploader from "./b2/b2Uploader";
+import {requireProvider} from "../providers/registry";
 
 /**
  * Image stores whose settings carry a path template. Only these can send the
@@ -86,28 +77,5 @@ export function destinationParts(settings: PublishSettings): (string | undefined
 }
 
 export default function buildUploader(settings: PublishSettings): ImageUploader {
-    switch (ImageStore.normalizeId(settings.imageStore)) {
-        case ImageStore.IMGUR.id:
-            return new ImgurAnonymousUploader(settings.imgurAnonymousSetting.clientId);
-        case ImageStore.GYAZO.id:
-            return new GyazoUploader(settings.gyazoSetting);
-        case ImageStore.ALIYUN_OSS.id:
-            return new OssUploader(settings.ossSetting);
-        case ImageStore.ImageKit.id:
-            return new ImagekitUploader(settings.imagekitSetting);
-        case ImageStore.AWS_S3.id:
-            return new AwsS3Uploader(settings.awsS3Setting, settings.proxySetting);
-        case ImageStore.TENCENTCLOUD_COS.id:
-            return new CosUploader(settings.cosSetting);
-        case ImageStore.QINIU_KUDO.id:
-            return new KodoUploader(settings.kodoSetting);
-        case ImageStore.GITHUB.id:
-            return new GitHubUploader(settings.githubSetting);
-        case ImageStore.CLOUDFLARE_R2.id:
-            return new R2Uploader(settings.r2Setting, settings.proxySetting);
-        case ImageStore.BACKBLAZE_B2.id:
-            return new B2Uploader(settings.b2Setting, settings.proxySetting);
-        default:
-            throw new Error('should not reach here!');
-    }
+    return requireProvider(ImageStore.normalizeId(settings.imageStore)).build(settings);
 }
