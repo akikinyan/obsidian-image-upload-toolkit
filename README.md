@@ -26,19 +26,35 @@
 ## 🚀 Quick Start
 
 ### 5-Minute Setup
-1. **Install Plugin** - Search for "Image Upload Toolkit" in Obsidian Community Plugins
+1. **Install Plugin** - Add `akikinyan/obsidian-image-upload-toolkit` as a BRAT beta plugin
 2. **Basic Configuration** - Select Imgur and set up your Client ID
 3. **Start Using** - Run the "Publish Page" command in any note
 4. **View Results** - Images are automatically uploaded and URLs are copied to clipboard
 
 ### System Requirements
-- Obsidian version ≥ 0.11.0
-- Desktop platforms only (Windows/macOS/Linux)
-- ⚠️ Mobile not supported
+- Obsidian 0.12.16 or later
+- Desktop only (Windows, macOS, Linux)
+- Mobile is not supported
+
+#### Why mobile is not supported
+
+The plugin cannot be enabled in Obsidian on a phone or a tablet.
+
+Getting an image to your storage takes two things: reading the image file out of
+the vault folder, and sending it to the storage service. Both rely on facilities
+that only the desktop app provides, and the mobile app has no equivalent. It is
+not a limitation the plugin can work around.
+
+Images you have already uploaded still display on mobile. What ends up in the
+note is an ordinary image URL, no different from a picture on any other website,
+so uploading from a desktop machine is enough for the result to render
+everywhere.
 
 ## ✨ Features
 
 ### Core Functionality
+Inherited from the upstream plugin.
+
 - ✅ **Smart Image Detection** - Automatically recognizes Markdown and Wiki link formats
 - ✅ **Multi-Format Support** - PNG, JPG, JPEG, GIF, SVG, WebP, Excalidraw
 - ✅ **Batch Processing** - Upload multiple images simultaneously
@@ -46,10 +62,17 @@
 - ✅ **Flexible Paths** - Support for relative paths and dynamic path variables
 - ✅ **Web Image Upload** - Download and re-upload web images to your storage (optional)
 - ✅ **Mermaid Conversion** - Automatically convert mermaid diagrams to PNG images during publish (optional)
-- ✅ **Proxy Support** - Route the S3-compatible uploaders through an HTTP proxy (fork addition, see [FORK.md](FORK.md#proxy-support))
-- ✅ **WebP Conversion** - Convert local images to WebP before upload, optionally archiving the originals (fork addition, optional)
-- ✅ **Upload History** - Skip re-uploading images whose contents have not changed (fork addition)
-- ✅ **Japanese UI** - Follows Obsidian's own language setting (fork addition)
+
+### Added in This Fork
+- ✅ **Proxy Support** - Route the S3-compatible uploaders through an HTTP proxy ([details](FORK.md#proxy-support))
+- ✅ **WebP Conversion** - Convert local images to WebP before upload, optionally archiving the originals (off by default, [details](FORK.md#webp-conversion))
+- ✅ **Upload History** - Skip re-uploading images whose contents have not changed (on by default, [details](FORK.md#upload-history))
+- ✅ **Japanese UI** - Follows Obsidian's own language setting ([details](FORK.md#japanese-ui))
+
+The fork also carries bug fixes, some backported from upstream and some found
+here. Those are recorded in the [Changelog](#-changelog) rather than listed as
+features. [README_JA.md](README_JA.md) documents the four additions above in
+full; this file links to [FORK.md](FORK.md) instead of repeating it.
 
 ### Supported Storage Services (10 providers)
 | Service | Rating | Best For |
@@ -70,9 +93,17 @@ Perfect for publishing to static sites like [GitHub Pages](https://pages.github.
 ## 🛠️ Installation & Configuration
 
 ### Step 1: Install Plugin
-1. Open Obsidian Settings → Community Plugins
-2. Search for "Image Upload Toolkit"
-3. Click Install and Enable
+This fork is not listed in the community plugin store, so it is installed with
+[BRAT](https://github.com/TfTHacker/obsidian42-brat).
+
+1. Install and enable "Obsidian42 - BRAT" from Community Plugins
+2. In BRAT's settings, choose "Add beta plugin"
+3. Enter `akikinyan/obsidian-image-upload-toolkit`
+4. Enable "Image Upload Toolkit" under Settings → Community Plugins
+
+The plugin id is the same as upstream's, so a store installation is overwritten
+in place and your existing `data.json` settings carry over. BRAT checks for
+updates at startup, so new releases arrive on their own.
 
 ### Step 2: Basic Settings
 - **Use image name as Alt Text**: ✅ Recommended (uses filename as alt text)
@@ -83,6 +114,13 @@ Perfect for publishing to static sites like [GitHub Pages](https://pages.github.
 - **Convert mermaid diagrams**: ❌ Optional (converts mermaid code blocks to PNG images during publish)
 - **Mermaid scale**: 2 (image resolution multiplier, 1-4x)
 - **Mermaid theme**: default (options: default/dark/forest/neutral/base)
+
+Those are all inherited from upstream. This fork adds four more settings:
+
+- **Language**: auto (follows Obsidian's own language setting; can be pinned to English or Japanese)
+- **Proxy**: auto-detect from environment ([details](FORK.md#proxy-support))
+- **WebP conversion**: off by default ([details](FORK.md#webp-conversion))
+- **Upload history**: on by default ([details](FORK.md#upload-history))
 
 ### Step 3: Choose Storage Service
 Select your preferred storage service from the dropdown. See [Storage Service Configuration](#-storage-service-configuration) for detailed setup instructions.
@@ -353,9 +391,9 @@ The plugin will contact one of the following hostnames depending on which storag
 
 ### Development Setup
 ```bash
-git clone https://github.com/addozhang/obsidian-image-upload-toolkit.git
+git clone https://github.com/akikinyan/obsidian-image-upload-toolkit.git
 cd obsidian-image-upload-toolkit
-npm install
+npm install --legacy-peer-deps
 npm run dev
 ```
 
@@ -372,7 +410,7 @@ npm run dev
 
 ## 📝 Changelog
 
-### v10.0.0 (unreleased — this fork)
+### v10.0.0 (Latest — this fork)
 Bug fixes backported from upstream 1.6.8 – 1.8.0. The provider-descriptor refactor those releases also carried is not included.
 - 🐛 The GitHub uploader ignored Target Path — every image was committed to the repository root — and the setting was not even rendered, so there was nothing to notice. Raw URLs are now percent-encoded too, which filenames with spaces need (upstream #88)
 - 🐛 The directory part of a link leaked into the remote object key, so the `../` segments Obsidian emits for relative links broke pre-signed keys: the HTTP layer normalizes them away before the request leaves Electron, and Tencent COS then answered `SignatureDoesNotMatch` because it signed the collapsed path (upstream #89, by kba977)
