@@ -413,7 +413,7 @@ npm run dev
 
 ## 📝 Changelog
 
-### Unreleased (this fork)
+### v10.2.0 (Latest — this fork)
 - ✨ **`{foldername}` and `{notename}` path variables.** Target Path accepts the folder the note sits in and the note's own name, so `img/{notename}/{filename}` files each note's images together. A note at the vault root leaves `{foldername}` empty and the segment collapses rather than producing a double slash. Answers [upstream #56](https://github.com/addozhang/obsidian-image-upload-toolkit/issues/56), still open there
 - 🐛 **Cloudflare R2 wrote a broken link when no public domain was set.** The upload succeeded and the note got a relative path instead of a URL, with no error anywhere. R2 now refuses the upload with a clear message, the way Qiniu Kodo already did — an R2 bucket is not readable over its own endpoint and the `pub-<hash>.r2.dev` host cannot be derived from it, so there is no URL to fall back to. The settings description says it is required now
 - 🐛 **WebP archiving now works for the GitHub store.** Keeping the untouched original alongside the WebP silently reused the WebP's own path there, so both landed in the same folder. GitHub gained a working Target Path in 10.0.0 but was still registered as a store that has none, so the archive path field was hidden and the template ignored
