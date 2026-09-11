@@ -21,6 +21,12 @@ function settings(overrides: Partial<PublishSettings> = {}): PublishSettings {
             path: "/img/{filename}",
             customDomainName: "pub-x.r2.dev",
         },
+        githubSetting: {
+            repositoryName: "owner/images",
+            branchName: "main",
+            token: "ghp_example",
+            path: "assets/{year}/{filename}",
+        },
         imgurAnonymousSetting: {clientId: "client-id"},
         ...overrides,
     } as unknown as PublishSettings;
@@ -28,13 +34,13 @@ function settings(overrides: Partial<PublishSettings> = {}): PublishSettings {
 
 describe("storeSupportsPath", () => {
     it("is true for the object stores that expose a path template", () => {
-        for (const store of ["AWS_S3", "CLOUDFLARE_R2", "BACKBLAZE_B2", "ALIYUN_OSS", "TENCENTCLOUD_COS", "QINIU_KUDO"]) {
+        for (const store of ["AWS_S3", "CLOUDFLARE_R2", "BACKBLAZE_B2", "ALIYUN_OSS", "TENCENTCLOUD_COS", "QINIU_KUDO", "GITHUB"]) {
             expect(storeSupportsPath(store)).toBe(true);
         }
     });
 
     it("is false for the stores that decide the path themselves", () => {
-        for (const store of ["IMGUR", "GYAZO", "Imagekit", "GITHUB"]) {
+        for (const store of ["IMGUR", "GYAZO", "Imagekit"]) {
             expect(storeSupportsPath(store)).toBe(false);
         }
     });
@@ -65,6 +71,15 @@ describe("withPathTemplate", () => {
         const originals = withPathTemplate(settings(), "/originals/{filename}");
         expect(originals.awsS3Setting.bucketName).toBe("my-bucket");
         expect(originals.awsS3Setting.region).toBe("ap-northeast-1");
+    });
+
+    it("overrides GitHub's path too, so archived originals get their own prefix", () => {
+        const base = settings({imageStore: "GITHUB"});
+        const originals = withPathTemplate(base, "originals/{filename}");
+
+        expect(originals.githubSetting.path).toBe("originals/{filename}");
+        expect(originals.githubSetting.repositoryName).toBe("owner/images");
+        expect(base.githubSetting.path).toBe("assets/{year}/{filename}");
     });
 
     it("returns the settings untouched for a store without a path", () => {

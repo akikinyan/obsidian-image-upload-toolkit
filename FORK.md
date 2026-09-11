@@ -362,7 +362,8 @@ valid here, which keeps future upstream provider changes mergeable:
 - `withPath(settings, path)` returns a copy of the settings pointing at a
   different path template. WebP archiving needs it to send preserved originals
   to a prefix of their own, and `storeSupportsPath()` is now the presence of
-  this field rather than a hand-maintained list of store ids.
+  this field rather than a hand-maintained list of store ids. Seven stores have
+  one; Imgur, Gyazo and ImageKit decide the remote key themselves.
 - `cacheKeyParts(settings)` returns what identifies the destination beyond the
   store id, for the upload cache key. Credentials stay out of it because the
   cache file is meant to be safe to sync, and the path template stays out

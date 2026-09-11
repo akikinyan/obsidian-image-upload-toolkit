@@ -78,7 +78,7 @@ Each provider also ships a descriptor (`src/uploader/<provider>/provider.ts`) bu
 
 Two descriptor fields are this fork's own and optional, so a descriptor written against upstream's four-field shape stays valid here:
 
-- `withPath(settings, path)` returns a copy of the settings pointing at a different path template. The six object stores that expose one provide it; `storeSupportsPath()` is the presence of this field rather than a list of ids to keep in sync. WebP archiving uses it to send preserved originals to their own prefix.
+- `withPath(settings, path)` returns a copy of the settings pointing at a different path template. The seven stores that expose one provide it; `storeSupportsPath()` is the presence of this field rather than a list of ids to keep in sync. WebP archiving uses it to send preserved originals to their own prefix.
 - `cacheKeyParts(settings)` returns what identifies the destination beyond the store id, for the upload cache key. Credentials are excluded, since the cache file is meant to be safe to sync, and so is the path template, because URLs already handed out stay valid.
 
 `build` is also where the proxy reaches the three AWS-SDK uploaders (S3, R2, B2), as `settings.proxySetting`. Omitting it there is silent: the uploader simply bypasses the proxy, which only shows up on a machine behind one, so `tests/unit/providerProxyInjection.test.ts` pins it.
