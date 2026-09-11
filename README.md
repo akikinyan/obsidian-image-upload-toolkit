@@ -412,7 +412,7 @@ npm run dev
 
 ## 📝 Changelog
 
-### Unreleased (this fork)
+### v10.1.0 (Latest — this fork)
 - ✨ **S3-compatible endpoints.** The AWS S3 store takes an optional endpoint, so it can address MinIO, DigitalOcean Spaces, Wasabi, Ceph or any other S3-compatible service. Requests switch to path-style addressing when it is set, region becomes a signing detail that defaults to `us-east-1`, and the endpoint host feeds both the proxy decision and the already-hosted check. Based on [upstream #55](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/55) by @njzc, which is still open there
 
 ### v10.0.0 (this fork)

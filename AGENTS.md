@@ -435,4 +435,6 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 
 ## Current Version
 
+10.1.0 - The AWS S3 store takes an optional S3-compatible endpoint (MinIO, DigitalOcean Spaces, Wasabi, Ceph), switching to path-style addressing and treating region as a signing detail; the endpoint host feeds the proxy decision, the hosted-URL check and the upload cache key. Based on upstream PR #55 by njzc, unmerged there.
+
 10.0.0 - Fork releases moved to their own major lane (see [FORK.md](FORK.md#versioning)). Provider descriptor registry ported from upstream: each provider ships one descriptor (uploader construction, hosted-URL detection, settings UI, plus this fork's `withPath`/`cacheKeyParts`) registered in a single list with load-time validation, collapsing six per-provider switches into one. Backported upstream's 1.6.8-1.8.0 fixes: the GitHub path template, link path segments leaking into remote object keys, unusable B2 and Kodo URLs, path templates without `{filename}` collapsing every upload onto one key, and the shallow settings merge. B2 gained the hosted-URL detection it never had, and S3 detection no longer claims unrelated hosts that merely contain "s3".
