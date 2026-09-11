@@ -27,6 +27,14 @@ export default class R2Uploader implements ImageUploader {
   }
 
   async upload(image: File, fullPath: string): Promise<string> {
+    // An R2 bucket is not readable over its own endpoint, and the public
+    // pub-<hash>.r2.dev host cannot be derived from it, so there is no URL to
+    // fall back to. Without this the upload succeeded and customizeDomainName
+    // returned the bare object key, putting a relative path in the note and
+    // breaking the image with no error anywhere.
+    if (!this.customDomainName || this.customDomainName.trim() === "") {
+      throw new Error("A R2.dev URL or custom domain name is required for Cloudflare R2.");
+    }
     const arrayBuffer = await image.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     let path = UploaderUtils.generateName(this.pathTmpl, image.name);

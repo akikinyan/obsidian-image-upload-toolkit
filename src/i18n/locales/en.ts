@@ -338,7 +338,7 @@ const en = {
         },
         customDomain: {
             name: "R2.dev URL or custom domain name",
-            desc: "You can use the R2.dev URL such as https://pub-xxxx.r2.dev, or a custom domain. If the custom domain name is example.com, you can use https://example.com/pic.jpg to access pic.img.",
+            desc: "Required. An R2 bucket cannot be read over its own endpoint, so the link written into the note has to use a public hostname: either the R2.dev URL you enabled (https://pub-xxxx.r2.dev) or a custom domain bound to the bucket. Uploads fail with an error while this is empty.",
             placeholder: "Enter domain name",
         },
     },

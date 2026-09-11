@@ -288,6 +288,26 @@ Objects uploaded before this stay as they were. Re-uploading them means clearing
 the upload history first, or the type can be replaced in place with
 `aws s3 cp --metadata-directive REPLACE` without changing any URL.
 
+## Fixed: R2 wrote a relative path when no public domain was set
+
+`R2Uploader.upload()` ended with `customizeDomainName(path, customDomainName)`,
+handing it the bare object key. With a domain configured that composes a URL;
+without one it returns the key unchanged, so the note received
+`Pasted%20image.png` instead of a link and the image silently failed to load.
+The upload itself had succeeded, so nothing surfaced an error.
+
+The same shape was fixed for B2 and Kodo in 10.0.0 by building the real URL,
+but R2 has none to build. A bucket is not readable over its
+`<account>.r2.cloudflarestorage.com` endpoint, and the public host Cloudflare
+issues is `pub-<hash>.r2.dev`, where the hash is unrelated to the account id and
+appears only after public access is turned on. Nothing in the settings can
+produce it.
+
+So R2 now refuses the upload with a clear message when the domain is empty,
+which is what Qiniu Kodo has always done for the same reason. Failing before the
+request is spent is the honest option: the alternative is writing a link that
+cannot work. The settings description says required, in both locales.
+
 ## Other changes
 
 - `display()` in `publishSettingTab.ts` was declared `: unknown` but returned
