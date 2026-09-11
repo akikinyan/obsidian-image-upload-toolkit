@@ -305,6 +305,51 @@ the upload history first, or the type can be replaced in place with
   running `npx tsc` as a typecheck scatters declaration files through `src/`
   and they were showing up as untracked.
 
+## S3-compatible endpoints
+
+The AWS S3 store takes an optional endpoint, which points it at MinIO,
+DigitalOcean Spaces, Wasabi, Ceph or anything else speaking the S3 API. Empty
+means real AWS S3 and nothing changes.
+
+Three things follow from setting it, and each one is a place the obvious
+implementation gets it wrong:
+
+- **Path-style addressing.** AWS puts the bucket in the hostname; an
+  S3-compatible service usually has no wildcard domain to do that with, so the
+  bucket becomes the first path segment and `forcePathStyle` goes on. The
+  returned URL has to match, which is why it is built as
+  `endpoint/bucket/key` rather than reusing the virtual-hosted form.
+- **Region becomes a signing detail.** SigV4 will not sign without one even
+  where the server ignores it, so an empty region falls back to `us-east-1`
+  rather than being rejected as missing. A service that does care about regions
+  (Spaces) still takes an explicit one.
+- **The endpoint host, not the bucket, is what the proxy sees.** `NO_PROXY`
+  commonly exempts exactly the internal host a self-hosted S3 runs on, so
+  `buildS3RequestHandler` is given the custom endpoint instead of a synthesized
+  `s3.<region>.amazonaws.com`. Passing the wrong host here fails in the most
+  annoying way available: the upload works at some desks and hangs at others.
+
+Two consequences are easy to miss, and both were missing from the upstream PR
+this is based on:
+
+- `isHosted` has to recognise the endpoint's host. Without that arm, images
+  already sitting on the MinIO install read as somebody else's and get
+  re-uploaded on every publish — the same bug B2 had before 10.0.0.
+- `cacheKeyParts` has to include the endpoint. The same bucket name on AWS and
+  on a local MinIO is not the same destination, and without it the upload cache
+  would hand back the old service's URLs after a switch.
+
+A custom domain in front of a custom endpoint has to point at the server rather
+than at the bucket, because path-style leaves the bucket in the path and
+`customizeDomainName` only swaps the host. That is the documented behaviour
+rather than a limitation worth coding around: a reverse proxy in front of MinIO
+sees the same paths.
+
+Based on upstream [#55](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/55)
+by njzc, still open there. The idea and the shape of the settings field are
+theirs; the path-style URL construction, the proxy target, the hosted-URL arm
+and the cache key are this fork's.
+
 ## Provider descriptors
 
 The descriptor registry itself is upstream's (#91), ported here. What is worth

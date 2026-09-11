@@ -262,6 +262,11 @@ const ja: Messages = {
             desc: "画像を保存する S3 バケットの名前。",
             placeholder: "バケット名を入力",
         },
+        endpoint: {
+            name: "S3 互換エンドポイント",
+            desc: "AWS S3 を使う場合は空のままにします。MinIO、DigitalOcean Spaces、Wasabi、Ceph などの S3 互換サービスを使う場合に、その URL を入れます。指定するとパス形式のアクセスになり、バケット名が URL の最初のパス要素になります。独自ドメインを併用する場合は、バケットではなくサーバーを指すように設定してください。リージョンは署名にだけ使われ、空欄なら us-east-1 になります。",
+            placeholder: "https://minio.example.com",
+        },
     },
 
     cos: {

@@ -36,6 +36,7 @@ describe("AwsS3Uploader", () => {
             bucketName: "blog",
             path: "",
             customDomainName: "",
+            endpoint: "",
             ...overrides,
         };
     }
@@ -63,6 +64,80 @@ describe("AwsS3Uploader", () => {
         expect(s3ClientMock.mock.calls[0][0].credentials.accessKeyId).toBe("k");
         expect(s3ClientMock.mock.calls[0][0].credentials.secretAccessKey).toBe("s");
         expect(sendMock.mock.calls[0][0].input.Bucket).toBe("blog");
+    });
+});
+
+describe("AwsS3Uploader with a custom S3-compatible endpoint", () => {
+    function setting(overrides: Partial<AwsS3Setting> = {}): AwsS3Setting {
+        return {
+            accessKeyId: "k",
+            secretAccessKey: "s",
+            region: "",
+            bucketName: "blog",
+            path: "",
+            customDomainName: "",
+            endpoint: "https://minio.example.com",
+            ...overrides,
+        };
+    }
+
+    it("addresses the endpoint path-style, since the bucket cannot be in the host", async () => {
+        const uploader = new AwsS3Uploader(setting());
+        const url = await uploader.upload(new File(["x"], "a.png", {type: "image/png"}), "a.png");
+
+        const config = s3ClientMock.mock.calls[0][0];
+        expect(config.endpoint).toBe("https://minio.example.com");
+        expect(config.forcePathStyle).toBe(true);
+        expect(url).toBe("https://minio.example.com/blog/a.png");
+    });
+
+    it("signs with us-east-1 when no region is given", async () => {
+        new AwsS3Uploader(setting());
+
+        // SigV4 needs some region even where the server ignores it.
+        expect(s3ClientMock.mock.calls[0][0].region).toBe("us-east-1");
+    });
+
+    it("keeps an explicit region for services that do care", async () => {
+        new AwsS3Uploader(setting({region: "nyc3"}));
+
+        expect(s3ClientMock.mock.calls[0][0].region).toBe("nyc3");
+    });
+
+    it("drops a trailing slash rather than producing a double-slashed key", async () => {
+        const uploader = new AwsS3Uploader(setting({endpoint: "https://minio.example.com/"}));
+        const url = await uploader.upload(new File(["x"], "a.png"), "a.png");
+
+        expect(s3ClientMock.mock.calls[0][0].endpoint).toBe("https://minio.example.com");
+        expect(url).toBe("https://minio.example.com/blog/a.png");
+    });
+
+    it("keeps the bucket segment when a custom domain fronts the endpoint", async () => {
+        const uploader = new AwsS3Uploader(setting({customDomainName: "cdn.example.com"}));
+        const url = await uploader.upload(new File(["x"], "a.png"), "a.png");
+
+        // Path-style means the bucket is part of the path, so the domain has to
+        // point at the server; only the host is swapped.
+        expect(url).toBe("https://cdn.example.com/blog/a.png");
+    });
+
+    it("still sends the resolved content type and the templated key", async () => {
+        const uploader = new AwsS3Uploader(setting({path: "img/{filename}"}));
+        await uploader.upload(new File(["x"], "a.webp"), "a.webp");
+
+        const input = sendMock.mock.calls[0][0].input;
+        expect(input.Key).toBe("img/a.webp");
+        expect(input.ContentType).toBe("image/webp");
+    });
+
+    it("behaves as plain AWS S3 when the endpoint is blank", async () => {
+        const uploader = new AwsS3Uploader(setting({endpoint: "", region: "eu-west-1"}));
+        const url = await uploader.upload(new File(["x"], "a.png"), "a.png");
+
+        const config = s3ClientMock.mock.calls[0][0];
+        expect(config.endpoint).toBeUndefined();
+        expect(config.forcePathStyle).toBeUndefined();
+        expect(url).toBe("https://blog.s3.eu-west-1.amazonaws.com/a.png");
     });
 });
 

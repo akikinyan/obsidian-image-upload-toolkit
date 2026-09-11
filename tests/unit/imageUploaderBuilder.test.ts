@@ -93,6 +93,15 @@ describe("destinationParts", () => {
         expect(destinationParts(settings())[0]).toBe("AWS_S3");
     });
 
+    it("separates the same bucket on AWS from one on a custom endpoint", () => {
+        const aws = destinationParts(settings()).join("|");
+        const minio = destinationParts(settings({
+            awsS3Setting: {...settings().awsS3Setting, endpoint: "https://minio.example.com"},
+        })).join("|");
+
+        expect(minio).not.toBe(aws);
+    });
+
     it("does not include the path template, since old URLs stay valid", () => {
         const before = destinationParts(settings()).join("|");
         const after = destinationParts(withPathTemplate(settings(), "/somewhere/else/{filename}")).join("|");

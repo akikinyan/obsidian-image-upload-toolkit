@@ -77,6 +77,27 @@ describe("isAlreadyHosted", () => {
     expect(isAlreadyHosted("https://evil-cdn.s3.local/img.png", customSettings)).toBe(false);
   });
 
+  it("s3 provider with a custom S3-compatible endpoint", () => {
+    const settings = makeSettings({
+      imageStore: "s3",
+      awsS3Setting: { endpoint: "https://minio.example.com" },
+    });
+
+    expect(isAlreadyHosted("https://minio.example.com/blog/img.png", settings)).toBe(true);
+    // once an endpoint is configured, amazonaws is not where our images live
+    expect(isAlreadyHosted("https://blog.s3.us-east-1.amazonaws.com/img.png", settings)).toBe(false);
+    expect(isAlreadyHosted("https://other.example.com/blog/img.png", settings)).toBe(false);
+  });
+
+  it("s3 provider ignores an unparseable endpoint", () => {
+    const settings = makeSettings({
+      imageStore: "s3",
+      awsS3Setting: { endpoint: "not a url" },
+    });
+
+    expect(isAlreadyHosted("https://blog.s3.us-east-1.amazonaws.com/img.png", settings)).toBe(false);
+  });
+
   it("cos provider default and custom domain", () => {
     const defaultSettings = makeSettings({ imageStore: "cos" });
     const customSettings = makeSettings({ imageStore: "cos", cosSetting: { customDomainName: "cdn.cos.local" } });
