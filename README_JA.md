@@ -651,7 +651,7 @@ Windows と Node 24 の組み合わせでは、`npm test` が既定の fork プ�
 
 ## 📝 変更履歴
 
-### 未リリース（このフォーク）
+### v10.1.0（このフォークの最新）
 
 - S3 互換エンドポイントに対応した。AWS S3 の設定に任意のエンドポイント欄を追加し、MinIO、DigitalOcean Spaces、Wasabi、Ceph などに接続できる。指定するとパス形式のアクセスに切り替わり、リージョンは署名専用になって空欄なら `us-east-1` を使う。エンドポイントのホストはプロキシ判定とアップロード済み判定の両方に反映される。上流の [PR #55](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/55)（njzc 氏、上流では未マージ）が元になっている
 
