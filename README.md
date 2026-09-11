@@ -412,7 +412,10 @@ npm run dev
 
 ## 📝 Changelog
 
-### v10.1.0 (Latest — this fork)
+### Unreleased (this fork)
+- 🐛 **WebP archiving now works for the GitHub store.** Keeping the untouched original alongside the WebP silently reused the WebP's own path there, so both landed in the same folder. GitHub gained a working Target Path in 10.0.0 but was still registered as a store that has none, so the archive path field was hidden and the template ignored
+
+### v10.1.0 (this fork)
 - ✨ **S3-compatible endpoints.** The AWS S3 store takes an optional endpoint, so it can address MinIO, DigitalOcean Spaces, Wasabi, Ceph or any other S3-compatible service. Requests switch to path-style addressing when it is set, region becomes a signing detail that defaults to `us-east-1`, and the endpoint host feeds both the proxy decision and the already-hosted check. Based on [upstream #55](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/55) by @njzc, which is still open there
 
 ### v10.0.0 (this fork)
