@@ -58,6 +58,7 @@ export const GITHUB_PROVIDER: ProviderDescriptor = {
         return isGitHubHost;
     },
     withPath: (settings, path) => ({...settings, githubSetting: {...settings.githubSetting, path}}),
+    getPath: settings => settings.githubSetting?.path ?? "",
     cacheKeyParts: settings => [settings.githubSetting?.repositoryName, settings.githubSetting?.branchName],
     drawSettings,
 };

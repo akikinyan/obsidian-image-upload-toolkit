@@ -43,6 +43,17 @@ describe("provider registry", () => {
         expect(() => requireProvider("NOT_A_STORE")).toThrow(/Unknown image store/);
     });
 
+    it("pairs getPath with withPath on exactly the same providers", () => {
+        // getPath reads the template that withPath writes back, and expanding
+        // the note variables needs both. A provider with one and not the other
+        // would either be unreadable or unwritable.
+        const readable = PROVIDERS.filter(p => p.getPath).map(p => p.store.id).sort();
+        const writable = PROVIDERS.filter(p => p.withPath).map(p => p.store.id).sort();
+
+        expect(readable).toEqual(writable);
+        expect(readable.length).toBe(7);
+    });
+
     it("buildUploader delegates through the registry", () => {
         const uploader = buildUploader(settings("GITHUB"));
         expect(uploader).toBeDefined();

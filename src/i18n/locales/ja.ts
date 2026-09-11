@@ -164,7 +164,7 @@ const ja: Messages = {
         },
         targetPath: {
             name: "保存先のパス",
-            desc: "バケット内のどこに置くか。{year} {mon} {day} {random} {filename} が使えます。例えば /{year}/{mon}/{day}/{filename} なら、pic.jpg は /2026/08/24/pic.jpg として保存されます。空欄にするとファイル名だけになり、同名ファイルが上書きされる恐れがあります。",
+            desc: "バケット内のどこに置くか。{year} {mon} {day} {random} {filename} {foldername} {notename} が使えます。例えば /{year}/{mon}/{day}/{filename} なら、pic.jpg は /2026/08/24/pic.jpg として保存されます。{foldername} はノートが入っているフォルダの名前、{notename} はノート自身の名前なので、img/{notename}/{filename} とすればノートごとに画像がまとまります。vault 直下のノートでは {foldername} が空になり、その区切りは詰められます。空欄にするとファイル名だけになり、同名ファイルが上書きされる恐れがあります。",
             placeholder: "/{year}/{mon}/{day}/{filename}",
         },
         customDomain: {

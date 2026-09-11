@@ -66,6 +66,7 @@ export const CLOUDFLARE_R2_PROVIDER: ProviderDescriptor = {
         return hostname.includes("r2.dev") || hostname.includes("r2.cloudflarestorage.com");
     },
     withPath: (settings, path) => ({...settings, r2Setting: {...settings.r2Setting, path}}),
+    getPath: settings => settings.r2Setting?.path ?? "",
     cacheKeyParts: settings => [settings.r2Setting?.bucketName, settings.r2Setting?.endpoint, settings.r2Setting?.customDomainName],
     drawSettings,
 };

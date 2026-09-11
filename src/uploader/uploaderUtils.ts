@@ -34,6 +34,48 @@ export class UploaderUtils {
         return EXTENSION_MIME_MAP[ext] ?? "application/octet-stream";
     }
 
+    /**
+     * The note-derived path variables for a vault-relative note path.
+     *
+     * `folderName` is the name of the folder the note sits in, not the whole
+     * relative path: a note at `notes/2026/trip.md` gives `2026`. A note at the
+     * vault root has no folder, so it gives "".
+     *
+     * Derived from the path rather than from TFile.parent/basename so it stays
+     * a pure function, testable without a vault.
+     */
+    static noteVariables(notePath: string): {folderName: string; noteName: string} {
+        const segments = (notePath ?? "").split("/").filter(segment => segment.length > 0);
+        const fileName = segments.pop() ?? "";
+        return {
+            folderName: segments.pop() ?? "",
+            noteName: fileName.replace(/\.md$/i, ""),
+        };
+    }
+
+    /**
+     * Substitute {foldername} and {notename} into a path template.
+     *
+     * Returns the template unchanged when it uses neither, so callers can tell
+     * that nothing note-specific is in play and skip rebuilding an uploader.
+     *
+     * A note at the vault root expands {foldername} to "", which would leave
+     * `images/{foldername}/{filename}` as `images//pic.png`. An empty path
+     * segment is not the same key as none: S3-family stores accept it and
+     * serve a URL with a double slash that is awkward to type and easy to
+     * break later. So runs of slashes collapse to one.
+     */
+    static expandNoteVariables(pathTmpl: string, notePath: string): string {
+        if (!pathTmpl.includes("{foldername}") && !pathTmpl.includes("{notename}")) {
+            return pathTmpl;
+        }
+        const {folderName, noteName} = this.noteVariables(notePath);
+        return pathTmpl
+            .replaceAll("{foldername}", folderName)
+            .replaceAll("{notename}", noteName)
+            .replace(/\/{2,}/g, "/");
+    }
+
     static generateName(pathTmpl: string | undefined, imageName: string): string {
         const date = new Date();
         const year = date.getFullYear().toString();

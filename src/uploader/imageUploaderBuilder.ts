@@ -2,6 +2,7 @@ import {PublishSettings} from "../publish";
 import ImageUploader from "./imageUploader";
 import ImageStore from "../imageStore";
 import {getProvider, requireProvider} from "../providers/registry";
+import {UploaderUtils} from "./uploaderUtils";
 
 /**
  * Whether the active store exposes a path template, which is what lets the
@@ -30,6 +31,26 @@ export function withPathTemplate(settings: PublishSettings, path: string): Publi
 export function destinationParts(settings: PublishSettings): (string | undefined)[] {
     const store = ImageStore.normalizeId(settings.imageStore);
     return [store, ...(getProvider(store)?.cacheKeyParts?.(settings) ?? [])];
+}
+
+/**
+ * A copy of `settings` whose active store has {foldername} and {notename}
+ * filled in from the note being published, or the same object when the
+ * template uses neither.
+ *
+ * Returning the input unchanged is load-bearing: the caller uses identity to
+ * decide whether an uploader built for the current settings is still correct
+ * for this note, and rebuilding one per publish otherwise would throw away the
+ * instance the plugin already holds.
+ */
+export function withNoteVariables(settings: PublishSettings, notePath: string): PublishSettings {
+    const provider = getProvider(ImageStore.normalizeId(settings.imageStore));
+    const template = provider?.getPath?.(settings);
+    if (!provider?.withPath || !template) {
+        return settings;
+    }
+    const expanded = UploaderUtils.expandNoteVariables(template, notePath);
+    return expanded === template ? settings : provider.withPath(settings, expanded);
 }
 
 export default function buildUploader(settings: PublishSettings): ImageUploader {

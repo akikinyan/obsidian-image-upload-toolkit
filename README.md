@@ -69,6 +69,7 @@ Inherited from the upstream plugin.
 - ✅ **Upload History** - Skip re-uploading images whose contents have not changed (on by default, [details](FORK.md#upload-history))
 - ✅ **Japanese UI** - Follows Obsidian's own language setting ([details](FORK.md#japanese-ui))
 - ✅ **S3-compatible endpoints** - Point the AWS S3 store at MinIO, DigitalOcean Spaces, Wasabi or Ceph ([details](FORK.md#s3-compatible-endpoints))
+- ✅ **`{foldername}` and `{notename}` path variables** - File uploads under the note they belong to ([details](FORK.md#note-derived-path-variables))
 
 The fork also carries bug fixes, some backported from upstream and some found
 here. Those are recorded in the [Changelog](#-changelog) rather than listed as
@@ -139,7 +140,7 @@ Select your preferred storage service from the dropdown. See [Storage Service Co
 ![screenshot](https://github.com/user-attachments/assets/d20abcac-78a3-4275-b391-818ad781c219)
 
 ### Advanced Usage
-- **Custom Paths**: Use variables like `{year}/{mon}/{day}/{filename}` in path settings
+- **Custom Paths**: Use variables like `{year}/{mon}/{day}/{filename}` in path settings, or `{foldername}`/`{notename}` to file images under the note they belong to
 - **Relative Paths**: Support for `./` and `../` relative path formats
 - **Dynamic Attachments**: Works with Obsidian's attachment folder settings
 - **Web Image Upload**: Enable in settings to automatically download and re-upload web images (http/https URLs) to your storage service. Images already hosted on your configured storage are automatically skipped.
@@ -413,6 +414,7 @@ npm run dev
 ## 📝 Changelog
 
 ### Unreleased (this fork)
+- ✨ **`{foldername}` and `{notename}` path variables.** Target Path accepts the folder the note sits in and the note's own name, so `img/{notename}/{filename}` files each note's images together. A note at the vault root leaves `{foldername}` empty and the segment collapses rather than producing a double slash. Answers [upstream #56](https://github.com/addozhang/obsidian-image-upload-toolkit/issues/56), still open there
 - 🐛 **Cloudflare R2 wrote a broken link when no public domain was set.** The upload succeeded and the note got a relative path instead of a URL, with no error anywhere. R2 now refuses the upload with a clear message, the way Qiniu Kodo already did — an R2 bucket is not readable over its own endpoint and the `pub-<hash>.r2.dev` host cannot be derived from it, so there is no URL to fall back to. The settings description says it is required now
 - 🐛 **WebP archiving now works for the GitHub store.** Keeping the untouched original alongside the WebP silently reused the WebP's own path there, so both landed in the same folder. GitHub gained a working Target Path in 10.0.0 but was still registered as a store that has none, so the archive path field was hidden and the template ignored
 

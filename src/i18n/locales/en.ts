@@ -162,7 +162,7 @@ const en = {
         },
         targetPath: {
             name: "Target path",
-            desc: "The path to store images. Supports {year} {mon} {day} {random} {filename} vars. For example, /{year}/{mon}/{day}/{filename} with uploading pic.jpg stores it as /2023/06/08/pic.jpg.",
+            desc: "The path to store images. Supports {year} {mon} {day} {random} {filename} {foldername} {notename} vars. For example, /{year}/{mon}/{day}/{filename} with uploading pic.jpg stores it as /2023/06/08/pic.jpg. {foldername} is the folder the note sits in and {notename} the note itself, so img/{notename}/{filename} files a note's images together; for a note at the vault root {foldername} is empty and the segment collapses.",
             placeholder: "Enter path",
         },
         customDomain: {
