@@ -68,6 +68,7 @@ Inherited from the upstream plugin.
 - ✅ **WebP Conversion** - Convert local images to WebP before upload, optionally archiving the originals (off by default, [details](FORK.md#webp-conversion))
 - ✅ **Upload History** - Skip re-uploading images whose contents have not changed (on by default, [details](FORK.md#upload-history))
 - ✅ **Japanese UI** - Follows Obsidian's own language setting ([details](FORK.md#japanese-ui))
+- ✅ **S3-compatible endpoints** - Point the AWS S3 store at MinIO, DigitalOcean Spaces, Wasabi or Ceph ([details](FORK.md#s3-compatible-endpoints))
 
 The fork also carries bug fixes, some backported from upstream and some found
 here. Those are recorded in the [Changelog](#-changelog) rather than listed as
@@ -80,7 +81,7 @@ full; this file links to [FORK.md](FORK.md) instead of repeating it.
 | Imgur | ⭐⭐⭐ | Personal blogs |
 | GitHub | ⭐⭐⭐⭐ | Open source projects |
 | Cloudflare R2 | ⭐⭐⭐⭐⭐ | Professional use |
-| AWS S3 | ⭐⭐⭐⭐ | Enterprise |
+| AWS S3 | ⭐⭐⭐⭐ | Enterprise, or any S3-compatible service |
 | Aliyun OSS | ⭐⭐⭐⭐ | Chinese users |
 | TencentCloud COS | ⭐⭐⭐⭐ | Chinese users |
 | Qiniu Kodo | ⭐⭐⭐⭐ | Chinese users |
@@ -121,6 +122,7 @@ Those are all inherited from upstream. This fork adds four more settings:
 - **Proxy**: auto-detect from environment ([details](FORK.md#proxy-support))
 - **WebP conversion**: off by default ([details](FORK.md#webp-conversion))
 - **Upload history**: on by default ([details](FORK.md#upload-history))
+- **S3-compatible endpoint**: empty by default, meaning real AWS S3 ([details](FORK.md#s3-compatible-endpoints))
 
 ### Step 3: Choose Storage Service
 Select your preferred storage service from the dropdown. See [Storage Service Configuration](#-storage-service-configuration) for detailed setup instructions.
@@ -410,7 +412,10 @@ npm run dev
 
 ## 📝 Changelog
 
-### v10.0.0 (Latest — this fork)
+### Unreleased (this fork)
+- ✨ **S3-compatible endpoints.** The AWS S3 store takes an optional endpoint, so it can address MinIO, DigitalOcean Spaces, Wasabi, Ceph or any other S3-compatible service. Requests switch to path-style addressing when it is set, region becomes a signing detail that defaults to `us-east-1`, and the endpoint host feeds both the proxy decision and the already-hosted check. Based on [upstream #55](https://github.com/addozhang/obsidian-image-upload-toolkit/pull/55) by @njzc, which is still open there
+
+### v10.0.0 (this fork)
 Bug fixes backported from upstream 1.6.8 – 1.8.0. The provider-descriptor refactor those releases also carried is not included.
 - 🐛 The GitHub uploader ignored Target Path — every image was committed to the repository root — and the setting was not even rendered, so there was nothing to notice. Raw URLs are now percent-encoded too, which filenames with spaces need (upstream #88)
 - 🐛 The directory part of a link leaked into the remote object key, so the `../` segments Obsidian emits for relative links broke pre-signed keys: the HTTP layer normalizes them away before the request leaves Electron, and Tencent COS then answered `SignatureDoesNotMatch` because it signed the collapsed path (upstream #89, by kba977)

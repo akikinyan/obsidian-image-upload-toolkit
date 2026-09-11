@@ -65,6 +65,19 @@ describe("provider descriptors and the proxy setting", () => {
         expect(requestHandlerMock.mock.calls[0][1]).toEqual(PROXY);
     });
 
+    it("points the proxy decision at S3's custom endpoint, not at amazonaws", () => {
+        const withEndpoint = settings(ImageStore.AWS_S3.id);
+        withEndpoint.awsS3Setting.endpoint = "https://minio.internal";
+
+        buildUploader(withEndpoint);
+
+        // NO_PROXY commonly exempts exactly the internal host a self-hosted S3
+        // runs on, so the handler has to be built for the host actually
+        // contacted.
+        expect(requestHandlerMock.mock.calls[0][0]).toBe("https://minio.internal");
+        expect(requestHandlerMock.mock.calls[0][1]).toEqual(PROXY);
+    });
+
     it("leaves the other stores alone", () => {
         const others = PROVIDERS
             .map(provider => provider.store.id)

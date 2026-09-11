@@ -260,6 +260,11 @@ const en = {
             desc: "Your AWS S3 bucket name.",
             placeholder: "Enter your bucket name",
         },
+        endpoint: {
+            name: "S3-compatible endpoint",
+            desc: "Leave empty for AWS S3. Set it to use an S3-compatible service instead — MinIO, DigitalOcean Spaces, Wasabi, Ceph. Requests then use path-style addressing, so the bucket becomes the first path segment of the URL, and a custom domain has to point at the server rather than at the bucket. Region is only used for request signing when an endpoint is set, and defaults to us-east-1 if you leave it blank.",
+            placeholder: "https://minio.example.com",
+        },
     },
 
     cos: {
