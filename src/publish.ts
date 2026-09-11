@@ -8,7 +8,7 @@ import ImageUploader from "./uploader/imageUploader";
 import type {ImgurAnonymousSetting} from "./uploader/imgur/imgurAnonymousUploader";
 import {IMGUR_PLUGIN_CLIENT_ID} from "./uploader/imgur/constants";
 import ImageStore from "./imageStore";
-import buildUploader from "./uploader/imageUploaderBuilder";
+import buildUploader, {withNoteVariables} from "./uploader/imageUploaderBuilder";
 import {errorMessage} from "./uploader/errorUtils";
 import PublishSettingTab from "./ui/publishSettingTab";
 import type {OssSetting} from "./uploader/oss/ossUploader";
@@ -242,11 +242,40 @@ export default class ObsidianPublish extends Plugin {
         if (!this.imageUploader) {
             new Notice(i18n().notice.uploaderSetupFailed)
         } else {
-            this.imageTagProcessor.process(ACTION_PUBLISH).catch((err: unknown) => {
+            this.processorForActiveNote().process(ACTION_PUBLISH).catch((err: unknown) => {
                 console.error("Image upload toolkit: publish failed", err);
                 new Notice(i18n().notice.publishFailed(errorMessage(err)), 8000);
             });
         }
+    }
+
+    /**
+     * The processor for this publish.
+     *
+     * {foldername} and {notename} depend on the note, which is not known when
+     * setupImageUploader() runs — that happens on load and on a settings
+     * change. A template using either one therefore needs an uploader built
+     * for this note, and the archived-originals uploader the processor builds
+     * internally has to see the same expansion, so the whole processor is
+     * rebuilt rather than just the uploader.
+     *
+     * withNoteVariables returns the settings unchanged when the template uses
+     * neither variable, which is the common case and keeps the instance the
+     * plugin already holds.
+     */
+    private processorForActiveNote(): ImageTagProcessor {
+        const notePath = this.app.workspace.getActiveFile()?.path ?? "";
+        const settings = withNoteVariables(this.settings, notePath);
+        if (settings === this.settings) {
+            return this.imageTagProcessor;
+        }
+        return new ImageTagProcessor(
+            this.app,
+            settings,
+            buildUploader(settings),
+            this.settings.showProgressModal,
+            this.uploadCache(),
+        );
     }
 
     setupImageUploader(): void {

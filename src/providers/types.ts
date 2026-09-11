@@ -30,6 +30,14 @@ export interface ProviderDescriptor {
     withPath?: (settings: ObsidianPublish["settings"], path: string) => ObsidianPublish["settings"];
 
     /**
+     * This provider's configured path template. The read half of the pair with
+     * `withPath`, present on exactly the same providers, and needed to expand
+     * the note-derived variables ({foldername}, {notename}) before the store
+     * ever sees the template.
+     */
+    getPath?: (settings: ObsidianPublish["settings"]) => string;
+
+    /**
      * What identifies this destination beyond the store id, for the upload
      * cache key: change any of it and the same bytes belong at a new URL.
      * Credentials are deliberately excluded, since the cache file is meant to

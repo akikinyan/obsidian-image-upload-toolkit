@@ -61,6 +61,7 @@ export const OSS_PROVIDER: ProviderDescriptor = {
         return hostname.includes("aliyuncs.com");
     },
     withPath: (settings, path) => ({...settings, ossSetting: {...settings.ossSetting, path}}),
+    getPath: settings => settings.ossSetting?.path ?? "",
     cacheKeyParts: settings => [settings.ossSetting?.bucket, settings.ossSetting?.region, settings.ossSetting?.customDomainName],
     drawSettings,
 };

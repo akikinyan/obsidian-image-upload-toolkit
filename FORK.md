@@ -370,6 +370,55 @@ by njzc, still open there. The idea and the shape of the settings field are
 theirs; the path-style URL construction, the proxy target, the hosted-URL arm
 and the cache key are this fork's.
 
+## Note-derived path variables
+
+Target Path accepts `{foldername}` and `{notename}` alongside the inherited
+`{year}`, `{mon}`, `{day}`, `{random}` and `{filename}`, so images can be filed
+under the note they belong to: `img/{notename}/{filename}`.
+
+`{foldername}` is the name of the folder the note sits in, not the whole
+relative path — `notes/2026/trip.md` gives `2026`. That is what upstream
+[#56](https://github.com/addozhang/obsidian-image-upload-toolkit/issues/56)
+asked for, and it keeps the variable a single path segment.
+
+A note at the vault root has no folder, so `{foldername}` expands to "" and
+`img/{foldername}/{filename}` would read `img//pic.png`. An empty path segment
+is not the same remote key as none: the S3-family stores accept it and then
+serve a URL with a double slash in it. So runs of slashes collapse to one after
+substitution.
+
+### Where the expansion happens
+
+Neither variable can be resolved where the other five are. `generateName` runs
+inside the uploader, which knows the image and nothing about the note, and
+threading note context through would mean changing the `ImageUploader`
+interface and all ten implementations.
+
+Instead the template is expanded before the uploader is built, through the
+descriptor: `getPath` reads the active store's template, `withPath` writes the
+expanded one back. `getPath` is new here and exists on exactly the seven
+providers that have `withPath`.
+
+The timing is the reason this sits in `publish()` rather than in
+`setupImageUploader()`. Setup runs on load and on a settings change, when there
+is no note in play; the note is only known per publish. So `publish()` asks
+`withNoteVariables` for settings for this note, and rebuilds the processor when
+they differ from the held ones. It rebuilds the whole processor rather than just
+the uploader because the archived-originals uploader is built inside it and has
+to see the same expansion.
+
+`withNoteVariables` returns its input unchanged when the template uses neither
+variable, and `publish()` compares by identity. That keeps the common case on
+the instance the plugin already holds, with no per-publish rebuild.
+
+### Known wart
+
+`generateName` substitutes the inherited variables with `String.replace`, which
+replaces only the first occurrence, so `{year}/{year}` expands only once. The
+note variables use `replaceAll`. Fixing the older ones is a behaviour change
+for anyone relying on the quirk, so it is left alone rather than bundled in
+here.
+
 ## Provider descriptors
 
 The descriptor registry itself is upstream's (#91), ported here. What is worth
