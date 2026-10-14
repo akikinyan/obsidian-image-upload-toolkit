@@ -2,7 +2,7 @@ import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import ObsidianPublish from "../publish";
 import ImageStore from "../imageStore";
 import {requireProvider} from "../providers/registry";
-import {i18n, setLocaleOverride, type LocaleSetting} from "../i18n";
+import {i18n, LOCALE_IDS, LOCALE_NAMES, setLocaleOverride, type LocaleSetting} from "../i18n";
 import {detectEnvProxy, redact, type ProxyMode} from "../net/proxy";
 import {formatExtensions, parseExtensions} from "../uploader/webpConverter";
 import {storeSupportsPath} from "../uploader/imageUploaderBuilder";
@@ -33,8 +33,7 @@ export default class PublishSettingTab extends PluginSettingTab {
             .setDesc(t.language.desc)
             .addDropdown(dd => {
                 dd.addOption("auto", t.language.options.auto);
-                dd.addOption("en", t.language.options.en);
-                dd.addOption("ja", t.language.options.ja);
+                for (const id of LOCALE_IDS) dd.addOption(id, LOCALE_NAMES[id]);
                 dd.setValue(this.plugin.settings.locale);
                 dd.onChange(value => {
                     const locale = value as LocaleSetting;

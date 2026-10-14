@@ -197,7 +197,7 @@ To add a new storage provider:
    };
    ```
 
-   Use [`src/ui/settingFields.ts`](src/ui/settingFields.ts) for the target path, bucket name and custom domain fields instead of repeating them, and add `withPath`/`cacheKeyParts` if the store has a path template or a bucket-like identity. Every string comes from [`src/i18n/locales/`](src/i18n/locales/), in both `en.ts` and `ja.ts`.
+   Use [`src/ui/settingFields.ts`](src/ui/settingFields.ts) for the target path, bucket name and custom domain fields instead of repeating them, and add `withPath`/`cacheKeyParts` if the store has a path template or a bucket-like identity. Every string comes from [`src/i18n/locales/`](src/i18n/locales/): add it to `en.ts` (the source of truth) and to every other locale file there, which the `Messages` type enforces.
 
 4. **Register the ImageStore entry** ([`src/imageStore.ts`](src/imageStore.ts)) - add the constant and any legacy aliases. The registry's load-time check fails fast if the descriptor is missing.
 
@@ -226,6 +226,7 @@ npm run test:coverage   # Coverage report
 
 Current test files:
 - `gyazoUploader.test.ts` — Gyazo uploader (upload success, error handling, field omission)
+- `i18n.test.ts` — Obsidian language-code mapping, locale pinning, and every catalogue's keys, empty strings and argument interpolation
 - `imageStore.test.ts` — Provider registry and `normalizeId()` alias resolution
 - `isAlreadyHosted.test.ts` — Hosted-URL detection for all providers
 - `imageTagRegex.test.ts` — Markdown/Wiki image tag regex matching

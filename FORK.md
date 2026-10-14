@@ -1,7 +1,7 @@
 # Fork notes
 
 This fork of [addozhang/obsidian-image-upload-toolkit](https://github.com/addozhang/obsidian-image-upload-toolkit)
-adds two things: HTTP proxy support for the S3-compatible uploaders, and a Japanese UI.
+adds two things: HTTP proxy support for the S3-compatible uploaders, and a translated UI.
 
 Install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) — "Add beta plugin" →
 `akikinyan/obsidian-image-upload-toolkit`. The plugin `id` is unchanged
@@ -91,10 +91,17 @@ Note that a proxy that terminates TLS (a MITM inspection proxy) needs its CA in
 Node's trust store, e.g. via `NODE_EXTRA_CA_CERTS`; that is outside the plugin's
 control.
 
-## Japanese UI
+## Interface languages
 
 The interface follows Obsidian's own language setting, and can be pinned with
-**Settings → Image Upload Toolkit → Language** (Auto / English / 日本語).
+**Settings → Image Upload Toolkit → Language**. Shipped locales: English,
+Japanese, Simplified Chinese, Traditional Chinese, Korean, German, Spanish,
+French, Brazilian Portuguese and Russian. Obsidian's `zh` maps to Simplified
+Chinese, `zh-TW` (and Hong Kong/Macau variants) to Traditional, and any `pt` to
+Brazilian Portuguese; an unsupported language falls back to English.
+
+Japanese was written by hand. The other eight started as machine translations
+and have not been reviewed by native speakers yet, so corrections are welcome.
 
 Translated: the settings tab, the upload progress modal, all `Notice`
 messages, and the "Publish page" command name. Region lists for Aliyun OSS and
@@ -108,7 +115,11 @@ looked up as plain nested properties (`t.s3.region.name`) rather than by string
 key, so the whole catalogue is type-checked.
 
 Adding a locale means writing `src/i18n/locales/<code>.ts`, registering it in
-`CATALOGUES`, and extending `detectLocale()`.
+`CATALOGUES` and `LOCALE_NAMES` (its name for itself, shown in the dropdown),
+and extending `resolveLocale()` if Obsidian's code for it is not the plain
+language prefix. `tests/unit/i18n.test.ts` then checks the new catalogue for
+empty strings and for message functions that drop an argument, which the type
+check cannot see.
 
 ## WebP conversion
 
