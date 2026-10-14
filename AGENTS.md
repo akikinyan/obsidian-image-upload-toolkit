@@ -443,6 +443,8 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 
 ## Current Version
 
+10.3.0 - Per-store target and excluded folders control local-image uploads. A read-only test modal shows verdicts for a note or the whole vault, and folder conditions follow renames and moves while the plugin is running. Every reference to an uploaded image is now rewritten.
+
 10.2.0 - Target Path gained {foldername} and {notename}, expanded through the descriptor's new getPath before the uploader is built (upstream issue #56, unaddressed there). Cloudflare R2 now refuses an upload with no public domain instead of writing a relative path into the note, matching what Qiniu Kodo already did. The GitHub store got the `withPath` it had been missing since its Target Path started working in 10.0.0, so WebP archiving sends originals to their own prefix there too. CI runs on every pull request, not only those targeting main.
 
 10.1.0 - The AWS S3 store takes an optional S3-compatible endpoint (MinIO, DigitalOcean Spaces, Wasabi, Ceph), switching to path-style addressing and treating region as a signing detail; the endpoint host feeds the proxy decision, the hosted-URL check and the upload cache key. Based on upstream PR #55 by njzc, unmerged there.
