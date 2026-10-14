@@ -415,7 +415,12 @@ npm run dev
 
 ## 📝 Changelog
 
-### v10.3.0 (Latest — this fork)
+### v10.4.0 (Latest — this fork)
+
+- Add Simplified Chinese, Traditional Chinese, Korean, German, Spanish, French, Brazilian Portuguese and Russian, bringing the interface to ten languages. Follow Obsidian's language automatically or choose a language in settings.
+- Add tests for language-code mapping, catalogue completeness and message arguments. The new translations have not yet been reviewed by native speakers.
+
+### v10.3.0 (this fork)
 
 - Choose target and excluded folders per image store. Excluded images keep their local links and skip upload caching, WebP conversion and original archiving. An empty target list in selected-folder mode uploads no local images.
 - Test folder conditions against a note or the entire vault without uploading. Folder conditions follow renames and moves made while the plugin is running.

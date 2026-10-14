@@ -444,6 +444,8 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 
 ## Current Version
 
+10.4.0 - Eight interface languages added: Simplified and Traditional Chinese, Korean, German, Spanish, French, Brazilian Portuguese and Russian. The UI now supports ten languages, with automatic Obsidian language detection and manual selection. Locale tests cover language-code mapping, catalogue completeness and message arguments.
+
 10.3.0 - Per-store target and excluded folders control local-image uploads. A read-only test modal shows verdicts for a note or the whole vault, and folder conditions follow renames and moves while the plugin is running. Every reference to an uploaded image is now rewritten.
 
 10.2.0 - Target Path gained {foldername} and {notename}, expanded through the descriptor's new getPath before the uploader is built (upstream issue #56, unaddressed there). Cloudflare R2 now refuses an upload with no public domain instead of writing a relative path into the note, matching what Qiniu Kodo already did. The GitHub store got the `withPath` it had been missing since its Target Path started working in 10.0.0, so WebP archiving sends originals to their own prefix there too. CI runs on every pull request, not only those targeting main.
