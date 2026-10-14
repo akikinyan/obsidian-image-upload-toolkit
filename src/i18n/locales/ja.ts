@@ -143,8 +143,6 @@ const ja: Messages = {
         desc: "この設定画面と通知メッセージの表示言語。「自動」は Obsidian 本体の言語設定に従います。切り替えると即座に反映されます。",
         options: {
             auto: "自動",
-            en: "English",
-            ja: "日本語",
         },
     },
 

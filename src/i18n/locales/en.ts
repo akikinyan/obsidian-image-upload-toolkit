@@ -140,8 +140,6 @@ const en = {
         desc: "Language of this plugin's interface. 'Auto' follows Obsidian's language setting.",
         options: {
             auto: "Auto",
-            en: "English",
-            ja: "日本語",
         },
     },
 

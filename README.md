@@ -4,7 +4,7 @@
 
 > **Fork notice** — this is [akikinyan's fork](https://github.com/akikinyan/obsidian-image-upload-toolkit) of
 > [addozhang/obsidian-image-upload-toolkit](https://github.com/addozhang/obsidian-image-upload-toolkit).
-> It adds HTTP proxy support for the S3-compatible uploaders and a Japanese UI.
+> It adds HTTP proxy support for the S3-compatible uploaders and a translated UI.
 > Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat), not from the community plugin store.
 > See [FORK.md](FORK.md) for what differs and why.
 
@@ -67,7 +67,7 @@ Inherited from the upstream plugin.
 - ✅ **Proxy Support** - Route the S3-compatible uploaders through an HTTP proxy ([details](FORK.md#proxy-support))
 - ✅ **WebP Conversion** - Convert local images to WebP before upload, optionally archiving the originals (off by default, [details](FORK.md#webp-conversion))
 - ✅ **Upload History** - Skip re-uploading images whose contents have not changed (on by default, [details](FORK.md#upload-history))
-- ✅ **Japanese UI** - Follows Obsidian's own language setting ([details](FORK.md#japanese-ui))
+- ✅ **Translated UI** - English, Japanese, Simplified and Traditional Chinese, Korean, German, Spanish, French, Brazilian Portuguese and Russian; follows Obsidian's own language setting ([details](FORK.md#interface-languages))
 - ✅ **S3-compatible endpoints** - Point the AWS S3 store at MinIO, DigitalOcean Spaces, Wasabi or Ceph ([details](FORK.md#s3-compatible-endpoints))
 - ✅ **`{foldername}` and `{notename}` path variables** - File uploads under the note they belong to ([details](FORK.md#note-derived-path-variables))
 - ✅ **Upload folders** - Choose, per image store, which vault folders are uploaded and which stay local, and test the result without uploading ([details](FORK.md#upload-folders))
@@ -120,7 +120,7 @@ updates at startup, so new releases arrive on their own.
 
 Those are all inherited from upstream. This fork adds four more settings:
 
-- **Language**: auto (follows Obsidian's own language setting; can be pinned to English or Japanese)
+- **Language**: auto (follows Obsidian's own language setting; can be pinned to any supported language)
 - **Proxy**: auto-detect from environment ([details](FORK.md#proxy-support))
 - **WebP conversion**: off by default ([details](FORK.md#webp-conversion))
 - **Upload history**: on by default ([details](FORK.md#upload-history))
