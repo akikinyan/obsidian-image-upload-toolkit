@@ -137,6 +137,22 @@ export class FileSystemAdapter {
   }
 }
 
+export class TAbstractFile {
+  path = "";
+  name = "";
+}
+
+export class TFile extends TAbstractFile {
+  extension = "";
+}
+
+export class TFolder extends TAbstractFile {}
+
+export class FuzzySuggestModal<T> extends Modal {
+  setPlaceholder(_text: string): void {}
+  getItems(): T[] { return []; }
+}
+
 export class MarkdownView {
   editor: any = null;
 }

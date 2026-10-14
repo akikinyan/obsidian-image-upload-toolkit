@@ -64,4 +64,13 @@ describe("mergeSettings", () => {
         mergeSettings(defaults, {provider: {token: "t", region: "eu", path: "p"}});
         expect(defaults.provider).toEqual({token: "", region: "auto", path: ""});
     });
+
+    it("keeps per-store folder filters and their folder arrays as saved", () => {
+        const withFilters = {...defaults, localImageFilters: {} as Record<string, unknown>};
+        const saved = {AWS_S3: {scope: "selected", includeFolders: ["a"], excludeFolders: ["a/b"]}};
+
+        expect(mergeSettings(withFilters, {localImageFilters: saved}).localImageFilters).toEqual(saved);
+        // A data.json written before filters existed gets none, which uploads everything.
+        expect(mergeSettings(withFilters, {flag: false}).localImageFilters).toEqual({});
+    });
 });

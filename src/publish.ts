@@ -1,6 +1,7 @@
 import {
     Notice,
     Plugin,
+    TFolder,
 } from "obsidian";
 
 import ImageTagProcessor, {ACTION_PUBLISH} from "./uploader/imageTagProcessor";
@@ -24,12 +25,15 @@ import {DEFAULT_PROXY_SETTING, type ProxySetting} from "./net/proxy";
 import {i18n, setLocaleOverride, type LocaleSetting} from "./i18n";
 import {DEFAULT_WEBP_SETTING, type WebpSetting} from "./uploader/webpConverter";
 import UploadCache, {CACHE_FILE_NAME} from "./uploader/uploadCache";
+import {renameFolderInFilters, type LocalImageFilter} from "./uploader/localImageFilter";
 
 export interface PublishSettings {
     locale: LocaleSetting; // UI language; "auto" follows Obsidian's language setting
     proxySetting: ProxySetting; // Proxy used by the S3-compatible uploaders
     webpSetting: WebpSetting; // WebP conversion of local images
     rememberUploads: boolean; // Skip re-uploading bytes already sent to this destination
+    /** Folder filter for local images, keyed by normalized image store id. */
+    localImageFilters: Record<string, LocalImageFilter>;
     imageAltText: boolean;
     replaceOriginalDoc: boolean;
     ignoreProperties: boolean;
@@ -57,6 +61,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
     proxySetting: DEFAULT_PROXY_SETTING,
     webpSetting: DEFAULT_WEBP_SETTING,
     rememberUploads: true,
+    localImageFilters: {},
     imageAltText: true,
     replaceOriginalDoc: false,
     ignoreProperties: true,
@@ -198,6 +203,19 @@ export default class ObsidianPublish extends Plugin {
             }
         });
         this.addSettingTab(new PublishSettingTab(this.app, this));
+
+        // Keep folder filters pointing at a folder after it is renamed or
+        // moved, so moving the excluded folder does not quietly start
+        // uploading its images. A deletion, or a move made while the plugin
+        // was off, is not followed; the settings tab flags those as missing.
+        this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+            if (!(file instanceof TFolder)) return;
+            if (renameFolderInFilters(this.settings.localImageFilters, oldPath, file.path)) {
+                this.saveSettings().catch((err: unknown) => {
+                    console.error("Image upload toolkit: saveSettings failed after a folder rename", err);
+                });
+            }
+        }));
     }
 
     onunload() {

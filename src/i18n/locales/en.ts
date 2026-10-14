@@ -153,6 +153,86 @@ const en = {
         },
     },
 
+    filter: {
+        heading: "Folders to upload",
+        scope: {
+            name: "Upload scope",
+            desc: "Which local images this image store uploads. Each image store keeps its own folders.",
+            options: {
+                all: "All folders",
+                selected: "Only selected folders",
+            },
+        },
+        hint: "Subfolders are included. Links to images that are left out stay as they are.",
+        include: {
+            name: "Target folders",
+            add: "Add folder",
+            empty: "Add a target folder. Until then, no local image is uploaded to this image store.",
+        },
+        exclude: {
+            name: "Excluded folders",
+            desc: "Images in these folders are never uploaded, even inside a target folder.",
+            add: "Add excluded folder",
+            empty: "No excluded folders.",
+        },
+        remove: "Remove",
+        missing: "Folder not found. It was deleted or moved while the plugin was off; the condition is kept until you remove it.",
+        pickFolder: "Choose a folder",
+        test: {
+            name: "Test conditions",
+            desc: "See which images would be uploaded with the conditions above, without uploading anything.",
+            button: "Test",
+        },
+    },
+
+    filterTest: {
+        title: "Upload conditions test",
+        disclaimer: "This checks which images are in scope only. It does not test the connection or credentials.",
+        store: (name: string) => `Image store: ${name}`,
+        scopeNote: "Images in a note",
+        scopeVault: "All images in the vault",
+        note: (path: string) => `Note: ${path}`,
+        noNote: "No note selected.",
+        changeNote: "Choose note",
+        pickNote: "Choose a note",
+        search: "Search paths",
+        allVerdicts: "All results",
+        verdict: {
+            included: "Uploaded",
+            excluded: "Matches an excluded folder",
+            outOfScope: "Not in a target folder",
+            notFound: "Image not found",
+        },
+        column: {
+            path: "Image",
+            verdict: "Result",
+            reason: "Reason",
+            refs: "Links",
+        },
+        reason: {
+            allFolders: "All folders are in scope.",
+            inTarget: (folders: string) => `In target folder ${folders}.`,
+            noTarget: "No target folder is selected.",
+            notInTarget: "Not under any target folder.",
+            excluded: (folders: string) => `In excluded folder ${folders}.`,
+            excludedOverTarget: (excluded: string, target: string) =>
+                `In excluded folder ${excluded} and target folder ${target}; exclusion takes precedence.`,
+            notFound: (link: string) => `No file in the vault matches the link ${link}.`,
+        },
+        count: (label: string, n: number) => `${label}: ${n}`,
+        page: (current: number, total: number, shown: number) => `Page ${current} of ${total} (${shown} images)`,
+        prev: "Previous",
+        next: "Next",
+        empty: "No images to show.",
+        otherHeading: "Not affected by folder conditions",
+        webOn: (n: number, hosted: number) =>
+            `Web images: ${n}. Downloaded and uploaded on publish` + (hosted > 0 ? `, except ${hosted} already on this image store.` : "."),
+        webOff: (n: number) => `Web images: ${n}. Left as they are ("Upload web images" is off).`,
+        mermaidOn: (n: number) => `Mermaid diagrams: ${n}. Rendered and uploaded on publish.`,
+        mermaidOff: (n: number) => `Mermaid diagrams: ${n}. Left as code ("Convert Mermaid diagrams to images" is off).`,
+        readFailed: (message: string) => `Could not read the note: ${message}`,
+    },
+
     // Fields that several image stores share.
     common: {
         bucketName: {
@@ -408,6 +488,8 @@ const en = {
         originalUploadFailed: (path: string, message: string) =>
             `The WebP of ${path} was uploaded, but archiving the original failed: ${message}`,
         readFileFailed: (path: string) => `Failed to read file: ${path}`,
+        filteredOut: (excluded: number, outOfScope: number) =>
+            `Left local by the upload folders: ${excluded} in an excluded folder, ${outOfScope} outside the target folders.`,
         mermaidRendering: (count: number) => `Rendering ${count} mermaid diagram(s)...`,
         mermaidInitFailed: (message: string) => `Mermaid initialization failed: ${message}`,
         mermaidBlockFailed: (index: number, message: string) =>

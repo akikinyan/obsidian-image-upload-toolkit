@@ -270,3 +270,79 @@
     width: var(--iut-autoclose-width, 100%);
     transition: none;
 }
+
+/* Upload folder conditions in the settings tab */
+.iut-folder-list .setting-item {
+    padding-left: var(--size-4-4, 16px);
+}
+
+.setting-item-description.mod-warning,
+.iut-folder-list .mod-warning {
+    color: var(--text-error, var(--color-red));
+}
+
+/* Upload conditions test modal */
+.iut-filter-test .iut-filter-test-disclaimer {
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+
+.iut-filter-test .iut-filter-test-scope,
+.iut-filter-test .iut-filter-test-note,
+.iut-filter-test .iut-filter-test-controls,
+.iut-filter-test .iut-filter-test-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.iut-filter-test .iut-filter-test-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.iut-filter-test .iut-filter-test-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-ui-small);
+}
+
+.iut-filter-test .iut-filter-test-table th,
+.iut-filter-test .iut-filter-test-table td {
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.iut-filter-test .iut-filter-test-path {
+    word-break: break-all;
+}
+
+.iut-filter-test .iut-verdict-included {
+    color: var(--text-success, var(--color-green));
+}
+
+.iut-filter-test .iut-verdict-excluded,
+.iut-filter-test .iut-verdict-outOfScope {
+    color: var(--text-muted);
+}
+
+.iut-filter-test .iut-verdict-notFound {
+    color: var(--text-error, var(--color-red));
+}
+
+.iut-filter-test .iut-filter-test-other {
+    margin-top: 12px;
+    color: var(--text-muted);
+}
+
+.iut-filter-test .iut-filter-test-other-heading {
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+}

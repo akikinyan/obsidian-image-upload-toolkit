@@ -156,6 +156,86 @@ const ja: Messages = {
         },
     },
 
+    filter: {
+        heading: "アップロードするフォルダー",
+        scope: {
+            name: "アップロードする範囲",
+            desc: "このアップロード先に送るローカル画像の範囲。フォルダーの指定はアップロード先ごとに別々に保存されます。",
+            options: {
+                all: "すべてのフォルダー",
+                selected: "選んだフォルダーだけ",
+            },
+        },
+        hint: "配下のフォルダーも含みます。対象外になった画像のリンクは、そのまま残ります。",
+        include: {
+            name: "対象フォルダー",
+            add: "フォルダーを追加",
+            empty: "対象フォルダーを追加してください。追加するまで、ローカル画像はこのアップロード先に一枚も送られません。",
+        },
+        exclude: {
+            name: "除外フォルダー",
+            desc: "ここに入っている画像は、対象フォルダーの中にあってもアップロードしません。",
+            add: "除外フォルダーを追加",
+            empty: "除外フォルダーはありません。",
+        },
+        remove: "削除",
+        missing: "フォルダーが見つかりません。削除されたか、プラグインが停止している間に移動された可能性があります。条件は削除するまで残ります。",
+        pickFolder: "フォルダーを選択",
+        test: {
+            name: "条件をテスト",
+            desc: "上の条件でどの画像がアップロードされるかを確認します。実際のアップロードは行いません。",
+            button: "テスト",
+        },
+    },
+
+    filterTest: {
+        title: "アップロード条件のテスト",
+        disclaimer: "アップロード範囲の確認です。接続や認証は確認しません。",
+        store: (name: string) => `アップロード先: ${name}`,
+        scopeNote: "ノート内の画像",
+        scopeVault: "Vault 全体の画像",
+        note: (path: string) => `ノート: ${path}`,
+        noNote: "ノートが選ばれていません。",
+        changeNote: "ノートを選ぶ",
+        pickNote: "ノートを選択",
+        search: "パスで検索",
+        allVerdicts: "すべての判定",
+        verdict: {
+            included: "対象",
+            excluded: "除外条件に一致",
+            outOfScope: "対象条件に一致しない",
+            notFound: "画像が見つからない",
+        },
+        column: {
+            path: "画像",
+            verdict: "判定",
+            reason: "理由",
+            refs: "リンク数",
+        },
+        reason: {
+            allFolders: "すべてのフォルダーが対象です。",
+            inTarget: (folders: string) => `対象フォルダー ${folders} に含まれます。`,
+            noTarget: "対象フォルダーが選ばれていません。",
+            notInTarget: "どの対象フォルダーにも含まれません。",
+            excluded: (folders: string) => `除外フォルダー ${folders} に含まれます。`,
+            excludedOverTarget: (excluded: string, target: string) =>
+                `除外フォルダー ${excluded} と対象フォルダー ${target} の両方に含まれます。除外が優先されます。`,
+            notFound: (link: string) => `リンク ${link} に一致するファイルが Vault にありません。`,
+        },
+        count: (label: string, n: number) => `${label}: ${n} 件`,
+        page: (current: number, total: number, shown: number) => `${current} / ${total} ページ（${shown} 件）`,
+        prev: "前へ",
+        next: "次へ",
+        empty: "表示する画像はありません。",
+        otherHeading: "フォルダー条件の対象外",
+        webOn: (n: number, hosted: number) =>
+            `外部画像: ${n} 件。公開時にダウンロードしてアップロードします` + (hosted > 0 ? `（このアップロード先にある ${hosted} 件は除く）。` : "。"),
+        webOff: (n: number) => `外部画像: ${n} 件。そのまま残します（「外部サイトの画像も取り込む」がオフ）。`,
+        mermaidOn: (n: number) => `Mermaid 図: ${n} 件。公開時に画像に変換してアップロードします。`,
+        mermaidOff: (n: number) => `Mermaid 図: ${n} 件。コードのまま残します（「Mermaid 図を画像に変換する」がオフ）。`,
+        readFailed: (message: string) => `ノートを読み込めませんでした: ${message}`,
+    },
+
     common: {
         bucketName: {
             name: "バケット名",
@@ -409,6 +489,8 @@ const ja: Messages = {
         originalUploadFailed: (path: string, message: string) =>
             `${path} の WebP はアップロードできましたが、元ファイルの保管に失敗しました: ${message}`,
         readFileFailed: (path: string) => `ファイルを読み込めませんでした: ${path}`,
+        filteredOut: (excluded: number, outOfScope: number) =>
+            `アップロード範囲の設定により、ローカルのまま残した画像があります（除外フォルダー: ${excluded} 件、対象フォルダー外: ${outOfScope} 件）。`,
         mermaidRendering: (count: number) => `Mermaid 図を ${count} 件変換しています...`,
         mermaidInitFailed: (message: string) => `Mermaid の初期化に失敗しました: ${message}`,
         mermaidBlockFailed: (index: number, message: string) =>
