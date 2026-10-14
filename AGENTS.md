@@ -28,11 +28,16 @@ src/
 ├── ui/
 │   ├── publishSettingTab.ts        # Settings UI (general/upload/mermaid/network/webp/cache + store dropdown)
 │   ├── settingFields.ts            # Setting fields shared by several providers
-│   └── uploadProgressModal.ts      # Progress display modal
+│   ├── uploadProgressModal.ts      # Progress display modal
+│   ├── imageFilterSettings.ts      # Per-store upload folder conditions (settings section)
+│   ├── filterTestModal.ts          # Dry-run listing of upload verdicts
+│   └── pathSuggestModal.ts         # Searchable folder/note picker
 └── uploader/
     ├── imageUploader.ts            # Base uploader interface
     ├── imageUploaderBuilder.ts     # Registry-backed factory + path/cache-key queries
-    ├── imageTagProcessor.ts        # Markdown image parser & processor
+    ├── imageTagProcessor.ts        # Markdown image parser & processor (collectImages/planImages shared with the filter test)
+    ├── localImageFilter.ts         # Folder include/exclude rules and rename tracking
+    ├── filterTest.ts               # Read-only dry run behind the filter test modal
     ├── mermaidProcessor.ts         # Mermaid-to-PNG conversion (v1.3.0)
     ├── webImageDownloader.ts       # Web image download utility (v1.2.0)
     ├── uploaderUtils.ts            # Shared utilities
@@ -86,6 +91,7 @@ Two descriptor fields are this fork's own and optional, so a descriptor written 
 ### Image Processing Flow
 
 1. **Detection**: [`ImageTagProcessor`](src/uploader/imageTagProcessor.ts) parses markdown for local and web images
+   - **Folder filter**: [`planImages()`](src/uploader/imageTagProcessor.ts) classifies each local image against the selected store's `localImageFilters` entry ([`localImageFilter.ts`](src/uploader/localImageFilter.ts)); excluded and out-of-scope images are dropped before upload, cache lookup and link replacement. The settings-tab test modal calls the same function, so its verdicts match a publish
 2. **Mermaid Conversion** (v1.3.0): [`MermaidProcessor`](src/uploader/mermaidProcessor.ts) renders mermaid code blocks to PNG images and uploads them, replacing code blocks with image references in the clipboard output
 3. **Web Image Handling** (v1.2.0): [`WebImageDownloader`](src/uploader/webImageDownloader.ts) downloads external images if `uploadWebImages` is enabled
 4. **Upload**: Images are uploaded via the configured provider's `upload()` method
@@ -223,6 +229,8 @@ Current test files:
 - `imageStore.test.ts` — Provider registry and `normalizeId()` alias resolution
 - `isAlreadyHosted.test.ts` — Hosted-URL detection for all providers
 - `imageTagRegex.test.ts` — Markdown/Wiki image tag regex matching
+- `localImageFilter.test.ts` — Folder rules: exclusion precedence, segment boundaries, empty target list, rename tracking
+- `localImageFilterPublish.test.ts` — Filters applied during publish, multi-reference rewriting, and the read-only dry run agreeing with publish
 - `uploaderUtils.test.ts` — Path template generation and domain customization
 - `webImageDownloader.test.ts` — Web image download logic
 - `mermaidProcessor.test.ts` — Mermaid-to-PNG conversion

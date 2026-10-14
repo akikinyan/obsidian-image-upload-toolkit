@@ -70,10 +70,11 @@ Inherited from the upstream plugin.
 - ✅ **Japanese UI** - Follows Obsidian's own language setting ([details](FORK.md#japanese-ui))
 - ✅ **S3-compatible endpoints** - Point the AWS S3 store at MinIO, DigitalOcean Spaces, Wasabi or Ceph ([details](FORK.md#s3-compatible-endpoints))
 - ✅ **`{foldername}` and `{notename}` path variables** - File uploads under the note they belong to ([details](FORK.md#note-derived-path-variables))
+- ✅ **Upload folders** - Choose, per image store, which vault folders are uploaded and which stay local, and test the result without uploading ([details](FORK.md#upload-folders))
 
 The fork also carries bug fixes, some backported from upstream and some found
 here. Those are recorded in the [Changelog](#-changelog) rather than listed as
-features. [README_JA.md](README_JA.md) documents the four additions above in
+features. [README_JA.md](README_JA.md) documents the additions above in
 full; this file links to [FORK.md](FORK.md) instead of repeating it.
 
 ### Supported Storage Services (10 providers)
@@ -144,6 +145,7 @@ Select your preferred storage service from the dropdown. See [Storage Service Co
 - **Relative Paths**: Support for `./` and `../` relative path formats
 - **Dynamic Attachments**: Works with Obsidian's attachment folder settings
 - **Web Image Upload**: Enable in settings to automatically download and re-upload web images (http/https URLs) to your storage service. Images already hosted on your configured storage are automatically skipped.
+- **Upload Folders**: Under the image store settings, keep some folders local. For example, with the scope "Only selected folders", add `90_Attachments` as a target folder and `90_Attachments/Weather` as an excluded folder: images under Weather keep their local links on publish, while everything else in `90_Attachments` is uploaded. "Test conditions" lists the verdict for each image in a note or in the whole vault without uploading anything.
 
 ## 🔧 Storage Service Configuration
 

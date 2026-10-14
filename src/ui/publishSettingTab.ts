@@ -6,6 +6,7 @@ import {i18n, setLocaleOverride, type LocaleSetting} from "../i18n";
 import {detectEnvProxy, redact, type ProxyMode} from "../net/proxy";
 import {formatExtensions, parseExtensions} from "../uploader/webpConverter";
 import {storeSupportsPath} from "../uploader/imageUploaderBuilder";
+import {drawImageFilterSettings} from "./imageFilterSettings";
 
 export default class PublishSettingTab extends PluginSettingTab {
     private plugin: ObsidianPublish;
@@ -13,6 +14,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     private networkDiv: HTMLDivElement;
     private webpDiv: HTMLDivElement;
     private cacheDiv: HTMLDivElement;
+    private filterDiv: HTMLDivElement;
 
     constructor(app: App, plugin: ObsidianPublish) {
         super(app, plugin);
@@ -150,6 +152,7 @@ export default class PublishSettingTab extends PluginSettingTab {
 
         const imageStoreTypeDiv = containerEl.createDiv();
         this.imageStoreDiv = containerEl.createDiv();
+        this.filterDiv = containerEl.createDiv();
 
         new Setting(imageStoreTypeDiv)
             .setName(t.imageStore.select.name)
@@ -166,9 +169,11 @@ export default class PublishSettingTab extends PluginSettingTab {
                     // depends on the store, so that section needs a redraw too.
                     this.drawWebpSettings(this.webpDiv);
                     this.drawImageStoreSettings(this.imageStoreDiv);
+                    drawImageFilterSettings(this.filterDiv, this.plugin);
                 });
             });
         this.drawImageStoreSettings(this.imageStoreDiv);
+        drawImageFilterSettings(this.filterDiv, this.plugin);
     }
 
     hide(): void {

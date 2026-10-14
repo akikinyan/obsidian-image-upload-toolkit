@@ -419,6 +419,70 @@ note variables use `replaceAll`. Fixing the older ones is a behaviour change
 for anyone relying on the quirk, so it is left alone rather than bundled in
 here.
 
+## Upload folders
+
+Each image store can limit which local images it uploads, by vault folder.
+The motivating case: upload `90_Attachments`, but keep
+`90_Attachments/Weather` local and versioned with the vault's Git.
+
+Settings live in `localImageFilters`, keyed by the normalized store id, so
+switching stores switches conditions. Each entry has a `scope` (`all` or
+`selected`), `includeFolders` and `excludeFolders`. A store with no entry, which
+is every store in a data.json written before this feature, uploads everything.
+
+The rules, in order (`src/uploader/localImageFilter.ts`):
+
+1. A link that matches no file is "not found", reported on publish as before.
+2. An image under an excluded folder is left local, whatever the target folders say.
+3. With the scope `selected`, an image under no target folder is left local.
+   That includes the case where no target folder is chosen: an empty list
+   uploads nothing rather than everything, because reading it as "everything"
+   would publish exactly the images the user set out to keep back.
+4. Everything else is uploaded.
+
+Folders match on whole path segments, so `Weather` does not cover
+`WeatherOld`. Web images and Mermaid output are not subject to folders.
+
+### One detection path for publishing and testing
+
+The settings tab has a "Test conditions" modal that lists the verdict for each
+image in a note or in the whole vault. For it to be worth anything, it has to
+agree with what a publish would do. So image detection and link resolution
+moved out of the processor into `collectImages()`, which takes the note text
+and the note path instead of reading the active editor, and `planImages()`
+attaches the verdict. Publishing and the test both call `planImages()`; there is
+no separate test-only judgement.
+
+Filtered images are dropped before the upload list is built. That one cut
+covers everything downstream: they are not looked up in the upload cache, not
+converted to WebP, not archived, not counted in the progress modal, and their
+links are left alone in both the clipboard copy and the note.
+
+The dry run (`src/uploader/filterTest.ts`) only reads the note text, the link
+index and the vault tree. It does not construct an uploader, open the cache,
+render Mermaid or download web images.
+
+Two existing behaviours changed on the way, because the test made them visible:
+
+- A link the link index cannot resolve is still checked against the vault at
+  that exact path, as the old existence check did, and the folder rules apply to
+  the file found there.
+- An image referenced by several spellings (a wiki link and a relative markdown
+  link, say) is uploaded once, but every reference is now rewritten. Before,
+  only the first spelling was.
+
+### Renames
+
+A `vault.on("rename")` handler rewrites the folder paths in every store's
+conditions, including folders nested under the renamed one. Obsidian also
+reports each descendant, which is why the rewrite is idempotent. Without this,
+moving the excluded folder would silently start uploading its images.
+
+A deletion, or a move while the plugin was off, cannot be followed. Those
+conditions are kept and flagged "Folder not found" in the settings tab rather
+than dropped, since dropping an exclusion is the direction that publishes
+something unintended.
+
 ## Provider descriptors
 
 The descriptor registry itself is upstream's (#91), ported here. What is worth

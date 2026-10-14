@@ -1,4 +1,4 @@
-import {App, Editor, FileSystemAdapter, MarkdownView, normalizePath, Notice} from "obsidian";
+import {App, Editor, FileSystemAdapter, MarkdownView, normalizePath, Notice, TFolder} from "obsidian";
 import path from "path";
 import ImageUploader from "./imageUploader";
 import {PublishSettings} from "../publish";
@@ -12,10 +12,13 @@ import {i18n} from "../i18n";
 import {convertToWebp, matchesExtension, resolveNoteOptIn} from "./webpConverter";
 import UploadCache, {cacheKey, destinationId, sha256} from "./uploadCache";
 import buildUploader, {destinationParts, storeSupportsPath, withPathTemplate} from "./imageUploaderBuilder";
+import {classify, filterFor, type Classification} from "./localImageFilter";
 
 export const MD_REGEX = /!\[([^\]]*)\]\(([^)]*)\)/g;
 export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
 export const PROPERTIES_REGEX = /^---[\s\S]+?---\n/;
+/** Extensions treated as images, for markdown links and for listing vault files. */
+export const IMAGE_EXTENSION_REGEX = /\.(png|jpg|jpeg|gif|svg|webp|excalidraw)$/i;
 
 export function isAlreadyHosted(url: string, settings: PublishSettings): boolean {
     try {
@@ -26,18 +29,183 @@ export function isAlreadyHosted(url: string, settings: PublishSettings): boolean
     }
 }
 
-interface Image {
+export interface Image {
     name: string;
+    /** Vault-relative path of a local image (raw link text when not found), or the URL of a web image. */
     path: string;
     url: string;
-    source: string;
+    /**
+     * Every link text that refers to this image. The file is uploaded once, but
+     * a note can point at it in several spellings (a wiki link and a relative
+     * markdown link, say) and each of them has to be rewritten.
+     */
+    sources: string[];
     isWebImage?: boolean; // Flag to indicate if this is a web image
+    /** For local images: whether the link was matched to a file in the vault. */
+    found?: boolean;
 }
 
-// Return type for resolveImagePath method
+/** One detected image and, for a local one, whether its store uploads it. */
+export interface PlannedImage {
+    image: Image;
+    /** Null for web images, which folder filters do not apply to. */
+    result: Classification | null;
+}
+
+/**
+ * Find the images a note refers to, resolved against `sourcePath`.
+ *
+ * Shared by publishing and by the filter test so both see the same images at
+ * the same paths. It reads nothing but the link index and the vault tree.
+ */
+export function collectImages(
+    app: App,
+    settings: PublishSettings,
+    value: string,
+    sourcePath: string,
+    mermaidUrls: Set<string> = new Set(),
+): Image[] {
+    const images: Image[] = [];
+
+    for (const match of value.matchAll(WIKI_REGEX)) {
+        addLocalImage(app, match[1], match[0], sourcePath, images);
+    }
+
+    for (const match of value.matchAll(MD_REGEX)) {
+        const imageUrl = match[2];
+
+        // Check if it's a web image and if upload web images is enabled
+        if (WebImageDownloader.isWebImage(imageUrl)) {
+            if (settings.uploadWebImages && !isAlreadyHosted(imageUrl, settings) && !mermaidUrls.has(imageUrl)) {
+                addWebImage(imageUrl, match[0], images);
+            }
+            // Skip if setting is disabled or already hosted
+            continue;
+        }
+
+        // Skip non-image local files (e.g., .pdf, .txt) to prevent invalid uploads
+        const localPath = imageUrl.split('?')[0];
+        if (!IMAGE_EXTENSION_REGEX.test(localPath)) {
+            continue;
+        }
+
+        let decodedName: string;
+        try {
+            decodedName = decodeURI(imageUrl);
+        } catch (error) {
+            console.error(`Failed to decode image link: ${match[0]}`, error);
+            continue;
+        }
+        addLocalImage(app, decodedName, match[0], sourcePath, images);
+    }
+
+    return images;
+}
+
+/**
+ * Detect the note's images and classify each local one against the selected
+ * store's folder filter. Publishing uploads the local entries whose verdict is
+ * "included" (plus web images); the filter test displays this same list.
+ */
+export function planImages(
+    app: App,
+    settings: PublishSettings,
+    value: string,
+    sourcePath: string,
+    mermaidUrls: Set<string> = new Set(),
+): PlannedImage[] {
+    const filter = filterFor(settings);
+    return collectImages(app, settings, value, sourcePath, mermaidUrls).map(image => ({
+        image,
+        result: image.isWebImage ? null : classify(image.found ? image.path : null, filter),
+    }));
+}
+
+function addSource(image: Image, src: string): void {
+    if (!image.sources.includes(src)) {
+        image.sources.push(src);
+    }
+}
+
+function addLocalImage(app: App, link: string, src: string, sourcePath: string, images: Image[]): void {
+    try {
+        const {resolvedPath, name, found} = resolveImagePath(app, link, sourcePath);
+        const existingImage = images.find(image => !image.isWebImage && image.path === resolvedPath);
+        if (existingImage) {
+            addSource(existingImage, src);
+            return;
+        }
+        images.push({name, path: resolvedPath, sources: [src], url: '', found});
+    } catch (error) {
+        console.error(`Failed to process image: ${src}`, error);
+    }
+}
+
+function addWebImage(url: string, src: string, images: Image[]): void {
+    try {
+        // Extract a friendly name from URL
+        const segments = new URL(url).pathname.split('/').filter(s => s.length > 0);
+        const name = segments.length > 0 ? segments[segments.length - 1] : `web-image-${Date.now()}`;
+
+        const existingImage = images.find(image => image.isWebImage && image.path === url);
+        if (existingImage) {
+            addSource(existingImage, src);
+            return;
+        }
+        images.push({
+            name: decodeURIComponent(name),
+            path: url, // Store the URL as path for web images
+            sources: [src],
+            url: '',
+            isWebImage: true,
+        });
+    } catch (error) {
+        console.error(`Failed to process web image: ${url}`, error);
+    }
+}
+
+// Return type for resolveImagePath
 interface ResolvedImagePath {
     resolvedPath: string;
     name: string;
+    found: boolean;
+}
+
+function resolveImagePath(app: App, imageName: string, sourcePath: string): ResolvedImagePath {
+    // Obsidian attachment folder options:
+    // 1. Vault folder: "/image.png"
+    // 2. In the folder specified below: such as "Attachments", then "Attachments/image.png"
+    // 3. Same folder as current file: "./image.png"
+    // 4. In subfolder under current folder: such as "attachments", then "attachments/image.png"
+    const targetFile = app.metadataCache.getFirstLinkpathDest(imageName, sourcePath);
+    // `name` must stay a bare filename: it is what feeds the {filename} path
+    // variable, so any directory part of the link text (notably the `../`
+    // segments Obsidian emits for relative links) would leak into the remote
+    // object key. See UploaderUtils.generateName.
+    if (targetFile) {
+        return {resolvedPath: targetFile.path, name: targetFile.name, found: true};
+    }
+    // The link index can miss a link that the vault still holds at that exact
+    // path, which publishing has always accepted. Only when neither knows the
+    // file is it reported as missing.
+    const direct = app.vault.getAbstractFileByPath(normalizePath(imageName));
+    if (direct && !(direct instanceof TFolder)) {
+        return {resolvedPath: direct.path ?? imageName, name: path.basename(imageName), found: true};
+    }
+    return {resolvedPath: imageName, name: path.basename(imageName), found: false};
+}
+
+/** Rewrite every reference to each uploaded image as a markdown link to its URL. */
+function replaceSources(text: string, images: Image[], altTextFromName: boolean): string {
+    for (const image of images) {
+        const altText = altTextFromName ?
+            path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
+            '';
+        for (const source of image.sources) {
+            text = text.replaceAll(source, `![${altText}](${image.url})`);
+        }
+    }
+    return text;
 }
 
 export const ACTION_PUBLISH: string = "PUBLISH";
@@ -87,7 +255,16 @@ export default class ImageTagProcessor {
             mermaidUrls = result.generatedUrls;
         }
 
-        const images = this.getImageLists(value, mermaidUrls);
+        const sourcePath = this.app.workspace.getActiveFile()?.path ?? "";
+        const planned = planImages(this.app, this.settings, value, sourcePath, mermaidUrls);
+        // Images the store's folder filter leaves out never enter the list, so
+        // they are not uploaded, not looked up in the cache, not counted in the
+        // progress, and their links stay as they are. Missing files stay in to
+        // be reported as before.
+        const images = planned
+            .filter(p => p.result === null || p.result.verdict === "included" || p.result.verdict === "notFound")
+            .map(p => p.image);
+        this.reportFiltered(planned);
         const uploader = this.imageUploader;
         
         // Initialize progress display
@@ -137,7 +314,7 @@ export default class ImageTagProcessor {
             }
             
             // Handle local images
-            if (this.app.vault.getAbstractFileByPath(normalizePath(image.path)) == null) {
+            if (!image.found) {
                 new Notice(i18n().notice.cannotLocate(image.name, image.path), 10000);
                 console.warn(`${normalizePath(image.path)} not exist`);
                 // Update the progress modal with the failure
@@ -166,39 +343,17 @@ export default class ImageTagProcessor {
             })));
             successfulImages = results.filter(img => img !== null) as Image[];
 
-            let altText;
-            for (const image of successfulImages) {
-                altText = this.settings.imageAltText ?
-                    path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
-                    '';
-                value = value.replaceAll(image.source, `![${altText}](${image.url})`);
-            }
+            value = replaceSources(value, successfulImages, this.settings.imageAltText);
         }
 
         if (this.settings.replaceOriginalDoc) {
             if (successfulImages.length > 0 && this.getEditor()) {
-                let docValue = this.getValue();
-                let altText;
-                for (const image of successfulImages) {
-                    altText = this.settings.imageAltText ?
-                        path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
-                        '';
-                    docValue = docValue.replaceAll(image.source, `![${altText}](${image.url})`);
-                }
-                this.getEditor()?.setValue(docValue);
+                this.getEditor()?.setValue(replaceSources(this.getValue(), successfulImages, this.settings.imageAltText));
             }
         } else {
             const webImages = successfulImages.filter(img => img.isWebImage);
             if (webImages.length > 0 && this.getEditor()) {
-                let docValue = this.getValue();
-                let altText;
-                for (const image of webImages) {
-                    altText = this.settings.imageAltText ?
-                        path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
-                        '';
-                    docValue = docValue.replaceAll(image.source, `![${altText}](${image.url})`);
-                }
-                this.getEditor()?.setValue(docValue);
+                this.getEditor()?.setValue(replaceSources(this.getValue(), webImages, this.settings.imageAltText));
             }
         }
 
@@ -340,111 +495,17 @@ export default class ImageTagProcessor {
         return resolveNoteOptIn(frontmatter, webpSetting.frontmatterProperty, webpSetting.frontmatterDefault);
     }
 
-    private getImageLists(value: string, mermaidUrls: Set<string> = new Set()): Image[] {
-        const images: Image[] = [];
-        
-        try {
-            const wikiMatches = value.matchAll(WIKI_REGEX);
-            for (const match of wikiMatches) {
-                this.processMatched(match[1], match[0], images);
-            }
-            
-            const mdMatches = value.matchAll(MD_REGEX);
-            for (const match of mdMatches) {
-                const imageUrl = match[2];
-                
-                // Check if it's a web image and if upload web images is enabled
-                if (WebImageDownloader.isWebImage(imageUrl)) {
-                    if (this.settings.uploadWebImages && !this.isAlreadyHosted(imageUrl) && !mermaidUrls.has(imageUrl)) {
-                        // Add as web image to be downloaded and uploaded
-                        this.processWebImage(imageUrl, match[0], images);
-                    }
-                    // Skip if setting is disabled or already hosted
-                    continue;
-                }
-                
-                // Skip non-image local files (e.g., .pdf, .txt) to prevent invalid uploads
-                const localPath = imageUrl.split('?')[0];
-                if (!/\.(png|jpg|jpeg|gif|svg|webp|excalidraw)$/i.test(localPath)) {
-                    continue;
-                }
-
-                const decodedName = decodeURI(imageUrl);
-                this.processMatched(decodedName, match[0], images);
-            }
-        } catch (error) {
-            console.error("Error processing image lists:", error);
+    /** Tell the user how many local images the folder filter kept out of this publish. */
+    private reportFiltered(planned: PlannedImage[]): void {
+        let excluded = 0;
+        let outOfScope = 0;
+        for (const {result} of planned) {
+            if (result?.verdict === "excluded") excluded++;
+            else if (result?.verdict === "outOfScope") outOfScope++;
         }
-        
-        return images;
-    }
-
-    private processMatched(path: string, src: string, images: Image[]){    
-        try {
-            const {resolvedPath, name} = this.resolveImagePath(path);
-            // check the item with same resolvedPath 
-            const existingImage = images.find(image => image.path === resolvedPath);
-            if (!existingImage) {
-                images.push({
-                    name,
-                    path: resolvedPath,
-                    source: src,
-                    url: '',
-                });
-            }
-        } catch (error) {
-            console.error(`Failed to process image: ${src}`, error);
+        if (excluded + outOfScope > 0) {
+            new Notice(i18n().notice.filteredOut(excluded, outOfScope), 8000);
         }
-    }
-
-    /**
-     * Process web image URL
-     */
-    private processWebImage(url: string, src: string, images: Image[]) {
-        try {
-            // Extract a friendly name from URL
-            const urlObj = new URL(url);
-            const pathname = urlObj.pathname;
-            const segments = pathname.split('/').filter(s => s.length > 0);
-            const name = segments.length > 0 ? segments[segments.length - 1] : `web-image-${Date.now()}`;
-            
-            // Check if already in list
-            const existingImage = images.find(image => image.path === url);
-            if (!existingImage) {
-                images.push({
-                    name: decodeURIComponent(name),
-                    path: url, // Store the URL as path for web images
-                    source: src,
-                    url: '',
-                    isWebImage: true
-                });
-            }
-        } catch (error) {
-            console.error(`Failed to process web image: ${url}`, error);
-        }
-    }
-
-    private isAlreadyHosted(url: string): boolean {
-        return isAlreadyHosted(url, this.settings);
-    }
-
-    private resolveImagePath(imageName: string): ResolvedImagePath {
-        // Obsidian attachment folder options:
-        // 1. Vault folder: "/image.png"
-        // 2. In the folder specified below: such as "Attachments", then "Attachments/image.png"
-        // 3. Same folder as current file: "./image.png"
-        // 4. In subfolder under current folder: such as "attachments", then "attachments/image.png"
-        const sourcePath = this.app.workspace.getActiveFile()?.path || "";
-        const targetFile = this.app.metadataCache.getFirstLinkpathDest(imageName, sourcePath);
-        // `name` must stay a bare filename: it is what feeds the {filename} path
-        // variable, so any directory part of the link text (notably the `../`
-        // segments Obsidian emits for relative links) would leak into the remote
-        // object key. See resolveImagePath callers and UploaderUtils.generateName.
-        if (targetFile) {
-            return {resolvedPath: targetFile.path, name: targetFile.name};
-        }
-        return {resolvedPath: imageName, name: path.basename(imageName)};
-
     }
 
     private getValue(): string {
